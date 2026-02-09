@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot</title>
+</head>
+<body>
+    <h1>Chatbot</h1>
+
+    <form method="post" action="/chat">
+        <input type="text" name="message" placeholder="Type your message" required>
+        <button type="submit">Send</button>
+    </form>
+
+    <div>
+        <h2>Chat History:</h2>
+        <ul>
+            {% for sender, message in chat %}
+                <li><strong>{{ sender }}:</strong> {{ message }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
