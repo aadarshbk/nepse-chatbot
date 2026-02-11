@@ -2,75 +2,354 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ bot_name }} — Trader Analysis Assistant</title>
     <style>
-        :root{--bg:#0b1220;--card:#0f1a2b;--muted:#9aa7bf;--accent:#17c964;--danger:#ff4d4f}
-        body{margin:0;font-family:Inter,Segoe UI,Helvetica,Arial;background:linear-gradient(180deg,#071026 0%,#081324 100%);color:#e6eef8}
-        .container{max-width:1100px;margin:32px auto;padding:20px}
-        .header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-        .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#0f89ff,#17c964);display:flex;align-items:center;justify-content:center;font-weight:700}
-        .brand h1{margin:0;font-size:20px}
-        .brand p{margin:0;color:var(--muted);font-size:13px}
-        .main{display:flex;gap:18px}
-        .sidebar{width:260px;background:var(--card);padding:16px;border-radius:10px}
-        .chatbox{flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,0.02);border-radius:10px;padding:12px}
-        .messages{flex:1;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:10px}
-        .message{max-width:75%;padding:10px;border-radius:10px}
-        .message.user{align-self:flex-end;background:#0b2840}
-        .message.bot{align-self:flex-start;background:#102034}
-        .sender{font-size:12px;color:var(--muted);margin-bottom:6px}
-        .input-area{display:flex;gap:8px;padding-top:8px}
-        .input-area input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
-        .input-area button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#012;cursor:pointer;font-weight:600}
-        .stat{margin:10px 0;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px}
-        .trend{color:var(--accent);font-weight:700}
-        footer{margin-top:10px;color:var(--muted);font-size:13px}
+        :root {
+            --bg: #070d17;
+            --surface: rgba(14, 23, 39, 0.82);
+            --surface-strong: #0e1727;
+            --line: rgba(177, 195, 219, 0.18);
+            --text: #e7eef9;
+            --muted: #9cafc8;
+            --accent: #3ddc97;
+            --accent-2: #56b6ff;
+            --danger: #ff6f6f;
+            --shadow: 0 24px 48px rgba(2, 8, 20, 0.35);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 10px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 12% 5%, rgba(86, 182, 255, 0.18), transparent 30%),
+                radial-gradient(circle at 84% 0%, rgba(61, 220, 151, 0.2), transparent 35%),
+                linear-gradient(160deg, #060b14 0%, #0a1220 42%, #0a111d 100%);
+        }
+
+        .page {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .shell {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(17, 28, 48, 0.8), rgba(11, 20, 35, 0.88));
+            backdrop-filter: blur(16px);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.1rem 1.2rem;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(90deg, rgba(86, 182, 255, 0.12), rgba(61, 220, 151, 0.05));
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+        }
+
+        .logo {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: .75rem;
+            background: linear-gradient(135deg, var(--accent-2), var(--accent));
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: #032033;
+            letter-spacing: .4px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 650;
+        }
+
+        .brand p {
+            margin: .2rem 0 0;
+            color: var(--muted);
+            font-size: .82rem;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .4rem .7rem;
+            border-radius: 999px;
+            font-size: .78rem;
+            background: rgba(61, 220, 151, 0.14);
+            color: #8ef8cc;
+            border: 1px solid rgba(61, 220, 151, 0.35);
+        }
+
+        .dot {
+            width: .42rem;
+            height: .42rem;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 70vh;
+        }
+
+        .sidebar {
+            padding: 1rem;
+            border-right: 1px solid var(--line);
+            background: rgba(7, 14, 25, 0.5);
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: rgba(17, 29, 49, 0.75);
+            padding: .85rem;
+            margin-bottom: .75rem;
+        }
+
+        .panel h3 {
+            margin: 0 0 .6rem;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--muted);
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .55rem .6rem;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: .45rem;
+            font-size: .9rem;
+        }
+
+        .metric strong {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .trend {
+            text-transform: capitalize;
+            color: var(--accent);
+        }
+
+        .helper {
+            margin: 0;
+            color: var(--muted);
+            font-size: .84rem;
+            line-height: 1.4;
+        }
+
+        .chat {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: linear-gradient(180deg, rgba(12, 20, 35, 0.6), rgba(8, 15, 26, 0.95));
+        }
+
+        .messages {
+            flex: 1;
+            overflow: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: .7rem;
+            scroll-behavior: smooth;
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            max-width: 30rem;
+            color: var(--muted);
+        }
+
+        .empty-state strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: .4rem;
+        }
+
+        .msg {
+            width: fit-content;
+            max-width: min(80ch, 78%);
+            border-radius: 1rem;
+            padding: .72rem .86rem;
+            border: 1px solid transparent;
+            line-height: 1.38;
+            box-shadow: 0 8px 20px rgba(6, 12, 23, 0.25);
+        }
+
+        .msg .sender {
+            display: block;
+            margin-bottom: .28rem;
+            font-size: .72rem;
+            letter-spacing: .02em;
+            color: var(--muted);
+        }
+
+        .msg.user {
+            margin-left: auto;
+            background: linear-gradient(135deg, rgba(45, 105, 212, .28), rgba(23, 148, 245, 0.2));
+            border-color: rgba(108, 172, 255, .35);
+        }
+
+        .msg.bot {
+            margin-right: auto;
+            background: rgba(22, 35, 58, 0.88);
+            border-color: rgba(165, 189, 225, .22);
+        }
+
+        .composer {
+            padding: .9rem;
+            border-top: 1px solid var(--line);
+            display: flex;
+            gap: .65rem;
+            background: rgba(8, 15, 26, 0.85);
+        }
+
+        .composer input {
+            flex: 1;
+            min-width: 0;
+            border-radius: .75rem;
+            border: 1px solid rgba(176, 197, 223, .22);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: .8rem .9rem;
+            font: inherit;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .composer input:focus {
+            border-color: rgba(86, 182, 255, 0.65);
+            box-shadow: 0 0 0 3px rgba(86, 182, 255, 0.2);
+        }
+
+        .composer button {
+            border: 0;
+            border-radius: .75rem;
+            padding: .78rem 1.05rem;
+            font: inherit;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent-2), var(--accent));
+            color: #032033;
+            cursor: pointer;
+        }
+
+        .composer button:hover {
+            filter: brightness(1.05);
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .msg { max-width: 90%; }
+        }
     </style>
     <script>
-        function scrollBottom(){const m=document.querySelector('.messages');if(m) m.scrollTop=m.scrollHeight}
-        window.addEventListener('load',scrollBottom)
+        function scrollBottom() {
+            const box = document.querySelector('.messages');
+            if (box) box.scrollTop = box.scrollHeight;
+        }
+
+        window.addEventListener('load', scrollBottom);
     </script>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">TM</div>
-            <div class="brand">
-                <h1>{{ bot_name }}</h1>
-                <p>Market analysis & trading assistant</p>
-            </div>
-        </header>
-
-        <main class="main">
-            <aside class="sidebar">
-                <h3>Market Snapshot</h3>
-                {% if summary %}
-                    <div class="stat">Close: <strong>{{ summary.close }}</strong></div>
-                    <div class="stat">Date: <strong>{{ summary.date }}</strong></div>
-                {% else %}
-                    <div class="stat">No summary available</div>
-                {% endif %}
-                <div class="stat">Trend: <strong class="trend">{{ trend }}</strong></div>
-                <footer>Try: "summary" or "trend"</footer>
-            </aside>
-
-            <section class="chatbox">
-                <div class="messages">
-                    {% for sender, message in chat %}
-                        <div class="message {% if sender == 'You' %}user{% else %}bot{% endif %}">
-                            <div class="sender">{{ sender }}</div>
-                            <div class="text">{{ message }}</div>
-                        </div>
-                    {% endfor %}
+    <div class="page">
+        <div class="shell">
+            <header class="topbar">
+                <div class="brand">
+                    <div class="logo">TM</div>
+                    <div>
+                        <h1>{{ bot_name }}</h1>
+                        <p>Market analysis and trading assistant</p>
+                    </div>
                 </div>
+                <div class="status-chip"><span class="dot"></span>Live market context</div>
+            </header>
 
-                <form method="post" action="/chat" class="input-area">
-                    <input type="text" name="message" placeholder="Ask for summary, trend, or type a question..." required autocomplete="off">
-                    <button type="submit">Send</button>
-                </form>
-            </section>
-        </main>
+            <main class="layout">
+                <aside class="sidebar">
+                    <section class="panel">
+                        <h3>Market Snapshot</h3>
+                        {% if summary %}
+                        <div class="metric"><span>Close</span><strong>{{ summary.close }}</strong></div>
+                        <div class="metric"><span>Date</span><strong>{{ summary.date }}</strong></div>
+                        {% else %}
+                        <p class="helper">No market summary available right now.</p>
+                        {% endif %}
+                        <div class="metric"><span>Trend</span><strong class="trend">{{ trend }}</strong></div>
+                    </section>
+
+                    <section class="panel">
+                        <h3>Quick Prompts</h3>
+                        <p class="helper">Try: <strong>summary</strong>, <strong>trend</strong>, or ask what changed in the latest session.</p>
+                    </section>
+                </aside>
+
+                <section class="chat" aria-label="Chat panel">
+                    <div class="messages" role="log" aria-live="polite">
+                        {% if chat %}
+                            {% for sender, message in chat %}
+                            <article class="msg {% if sender == 'You' %}user{% else %}bot{% endif %}">
+                                <span class="sender">{{ sender }}</span>
+                                <div>{{ message }}</div>
+                            </article>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <strong>Welcome to {{ bot_name }}</strong>
+                                Ask for a <em>summary</em> or <em>trend</em> to get started.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="/chat" class="composer">
+                        <input
+                            type="text"
+                            name="message"
+                            placeholder="Ask for summary, trend, or type your trading question…"
+                            required
+                            autocomplete="off"
+                            aria-label="Type your message"
+                        >
+                        <button type="submit">Send</button>
+                    </form>
+                </section>
+            </main>
+        </div>
     </div>
 </body>
 </html>
