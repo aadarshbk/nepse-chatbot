@@ -20,11 +20,15 @@ def load_data(symbol: str):
 
 def get_summary(symbol: str):
     df = load_data(symbol)
+
+    if "close" not in df.columns:
+        raise ValueError(f"'close' column not found. Available columns: {df.columns}")
+
     latest = df.iloc[-1]
 
     return {
-        "close": float(latest["Close"]),
-        "date": latest["Date"]
+        "close": float(latest["close"]),
+        "date": latest["date"] if "date" in df.columns else "N/A"
     }
 
 
@@ -34,7 +38,10 @@ def get_trend(symbol: str):
     if len(df) < 10:
         return "unknown"
 
-    if df["Close"].iloc[-1] > df["Close"].iloc[-10]:
+    if "close" not in df.columns:
+        raise ValueError(f"'close' column not found. Available columns: {df.columns}")
+
+    if df["close"].iloc[-1] > df["close"].iloc[-10]:
         return "uptrend"
     else:
         return "downtrend"
