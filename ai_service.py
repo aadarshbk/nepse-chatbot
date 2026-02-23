@@ -1,54 +1,62 @@
+# ai_service.py (UPDATED)
 import os
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+class AIService:
+    def __init__(self):
+        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        # ✅ UPDATED: Use supported model
+        # llama-3.3-70b-versatile is the recommended replacement
+        self.model_name = "llama-3.3-70b-versatile"
+        
+        self.system_prompt = """
+You are 'NepseBot', an expert trading assistant for the Nepal Stock Exchange (NEPSE).
 
+YOUR KNOWLEDGE BASE:
+1. Market Hours: Sun-Fri, 11:00 AM - 3:00 PM (Nepal Time).
+2. Settlement: T+2 days (Trade day + 2 working days).
+3. Taxes: 
+   - Capital Gain: 5% (holding >1 year), 7.5% (holding <1 year).
+   - Dividend: 5% (Cash), 7.5% (Bonus).
+4. Circuit Limits: Generally ±10% of previous close.
+5. Terminology: Kitta (Shares), Crore/Lakhs (Currency), LTP (Last Traded Price), RO (Registered Owner).
 
-def get_trade_signal(symbol: str, market_data: dict, user_message: str):
+YOUR RULES:
+1. ACCURACY: Do not hallucinate prices. If unsure, advise checking TMS.
+2. SAFETY: Always warn about market risks. Never guarantee profit.
+3. TONE: Professional, concise, financial analyst style.
+4. CONTEXT: Use provided market data if available in the prompt.
+5. LANGUAGE: English, but use Nepali financial terms where appropriate.
 
-    summary = market_data["summary"]
-    trend = market_data["trend"]
-
-    prompt = f"""
-You are an expert stock trading AI.
-
-Stock: {symbol}
-Current Price: {summary['close']}
-Date: {summary['date']}
-Trend: {trend}
-
-User question:
-{user_message}
-
-Respond STRICTLY in this JSON format:
-
-{{
-  "signal": "BUY or SELL or HOLD",
-  "confidence": "LOW or MEDIUM or HIGH",
-  "reasoning": "Short explanation"
-}}
+CURRENT MARKET CONTEXT:
+{market_context}
 """
 
-    response = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=[
-            {"role": "system", "content": "You are a professional trading assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
-    )
+    def chat(self, message, history=None, market_context=""):
+        messages = [
+            {"role": "system", "content": self.system_prompt.format(market_context=market_context)}
+        ]
+        
+        # Add history (limit to last 6 messages to save tokens/speed)
+        if history:
+            messages.extend(history[-6:])
+            
+        messages.append({"role": "user", "content": message})
 
-    content = response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,  # ✅ Uses updated model
+                messages=messages,
+                temperature=0.3,  # Low for factual accuracy
+                max_tokens=500
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Error connecting to AI: {str(e)}"
 
-    try:
-        import json
-        return json.loads(content)
-    except:
-        return {
-            "signal": "HOLD",
-            "confidence": "LOW",
-            "reasoning": "AI response parsing failed."
-        }
+# Global instance
+ai_service = AIService()

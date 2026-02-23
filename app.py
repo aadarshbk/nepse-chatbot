@@ -4,12 +4,17 @@ from fastapi.responses import HTMLResponse
 from analysis import get_market_data
 from ai_service import get_trade_signal
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+# Load environment variables
+load_dotenv()
 
 chat_history = []
 BOT_NAME = "TradeMind"
 
+def get_chat_history():
+    """Retrieve chat history from session"""
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+    return session['chat_history']
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -21,6 +26,18 @@ async def home(request: Request):
         "trend": "Unknown"
     })
 
+@app.route('/api/market')
+def api_market():
+    """
+    API endpoint for market data.
+    Can be used by frontend for real-time updates.
+    """
+    return jsonify({
+        'summary': nepse_fetcher.get_market_summary(),
+        'trend': nepse_fetcher.get_market_trend(),
+        'index': nepse_fetcher.get_nepse_index(),
+        'status': nepse_fetcher.get_market_status()
+    })
 
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(request: Request, message: str = Form(...)):
