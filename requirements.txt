@@ -1,3 +1,8 @@
-fastapi
-uvicorn
-jinja2
+flask
+groq
+python-dotenv
+httpx
+langchain
+langchain-community
+chromadb
+sentence-transformers
