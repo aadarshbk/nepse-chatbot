@@ -1,14 +1,14 @@
 :root{--bg:#0b1220;--card:#0f1a2b;--muted:#9aa7bf;--accent:#17c964;--danger:#ff4d4f}
-body{margin:0;font-family:Inter,Segoe UI,Helvetica,Arial;background:linear-gradient(180deg,#071026 0%,#081324 100%);color:#e6eef8}
-.container{max-width:1100px;margin:32px auto;padding:20px}
-.header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+body{margin:0;font-family:Inter,Segoe UI,Helvetica,Arial;background:linear-gradient(180deg,#071026 0%,#081324 100%);color:#e6eef8;height:100vh}
+.container{display:flex;flex-direction:column;height:100vh;padding:0}
+.header{display:flex;align-items:center;gap:16px;padding:20px;flex-shrink:0}
 .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#0f89ff,#17c964);display:flex;align-items:center;justify-content:center;font-weight:700}
 .brand h1{margin:0;font-size:20px}
 .brand p{margin:0;color:var(--muted);font-size:13px}
-.main{display:flex;gap:18px}
-.sidebar{width:260px;background:var(--card);padding:16px;border-radius:10px}
-.chatbox{flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,0.02);border-radius:10px;padding:12px}
-.messages{flex:1;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:10px}
+.main{display:flex;gap:18px;flex:1;overflow:hidden;padding:0 20px 20px}
+.sidebar{width:260px;background:var(--card);padding:16px;border-radius:10px;flex-shrink:0;overflow-y:auto;max-height:100%}
+.chatbox{flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,0.02);border-radius:10px;padding:12px;overflow:hidden}
+.messages{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:10px}
 .message{max-width:75%;padding:10px;border-radius:10px}
 .message.user{align-self:flex-end;background:#0b2840}
 .message.bot{align-self:flex-start;background:#102034}
