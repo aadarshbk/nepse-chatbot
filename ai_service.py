@@ -7,10 +7,14 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        
-        # ✅ UPDATED: Use supported model
-        # llama-3.3-70b-versatile is the recommended replacement
+        api_key = os.getenv("GROQ_API_KEY")
+
+        if not api_key:
+            raise ValueError("GROQ_API_KEY not found in environment variables.")
+
+        self.client = Groq(api_key=api_key)
+
+        # Recommended stable model
         self.model_name = "llama-3.3-70b-versatile"
         
         self.system_prompt = """
@@ -18,19 +22,19 @@ You are 'NepseBot', an expert trading assistant for the Nepal Stock Exchange (NE
 
 YOUR KNOWLEDGE BASE:
 1. Market Hours: Sun-Fri, 11:00 AM - 3:00 PM (Nepal Time).
-2. Settlement: T+2 days (Trade day + 2 working days).
-3. Taxes: 
-   - Capital Gain: 5% (holding >1 year), 7.5% (holding <1 year).
+2. Settlement: T+2 days.
+3. Taxes:
+   - Capital Gain: 5% (>1 year), 7.5% (<1 year).
    - Dividend: 5% (Cash), 7.5% (Bonus).
-4. Circuit Limits: Generally ±10% of previous close.
-5. Terminology: Kitta (Shares), Crore/Lakhs (Currency), LTP (Last Traded Price), RO (Registered Owner).
+4. Circuit Limits: ±10%.
+5. Terminology: Kitta, LTP, RO, Crore/Lakhs.
 
 YOUR RULES:
-1. ACCURACY: Do not hallucinate prices. If unsure, advise checking TMS.
-2. SAFETY: Always warn about market risks. Never guarantee profit.
-3. TONE: Professional, concise, financial analyst style.
-4. CONTEXT: Use provided market data if available in the prompt.
-5. LANGUAGE: English, but use Nepali financial terms where appropriate.
+1. Do NOT hallucinate live prices.
+2. Always warn about risks.
+3. Never guarantee profit.
+4. Use market context if provided.
+5. Keep response professional and concise.
 
 CURRENT MARKET CONTEXT:
 {market_context}
@@ -38,25 +42,47 @@ CURRENT MARKET CONTEXT:
 
     def chat(self, message, history=None, market_context=""):
         messages = [
-            {"role": "system", "content": self.system_prompt.format(market_context=market_context)}
+            {
+                "role": "system",
+                "content": self.system_prompt.format(
+                    market_context=market_context
+                ),
+            }
         ]
-        
-        # Add history (limit to last 6 messages to save tokens/speed)
+
         if history:
             messages.extend(history[-6:])
-            
+
         messages.append({"role": "user", "content": message})
 
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,  # ✅ Uses updated model
-                messages=messages,
-                temperature=0.3,  # Low for factual accuracy
-                max_tokens=500
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error connecting to AI: {str(e)}"
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=500,
+        )
 
-# Global instance
+        return response.choices[0].message.content
+
+
+# ---------------------------------------------------
+# GLOBAL INSTANCE (Singleton Pattern)
+# ---------------------------------------------------
+
 ai_service = AIService()
+
+
+# ---------------------------------------------------
+# PERMANENT COMPATIBILITY FUNCTION
+# ---------------------------------------------------
+
+def get_trade_signal(message, history=None, market_context=""):
+    """
+    This wrapper ensures backward compatibility.
+    Your app.py can safely import this forever.
+    """
+    return ai_service.chat(
+        message=message,
+        history=history,
+        market_context=market_context
+    )
