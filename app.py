@@ -1,57 +1,75 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from dotenv import load_dotenv
+
+from nepse_data import nepse_fetcher
 from analysis import get_market_data
 from ai_service import get_trade_signal
 
 # Load environment variables
 load_dotenv()
 
+# Initialize FastAPI app
+app = FastAPI()
+
+# Templates directory
+templates = Jinja2Templates(directory="templates")
+
+# Chat memory (temporary in-memory store)
 chat_history = []
+
+# Bot name
 BOT_NAME = "TradeMind"
 
-def get_chat_history():
-    """Retrieve chat history from session"""
-    if 'chat_history' not in session:
-        session['chat_history'] = []
-    return session['chat_history']
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "bot_name": BOT_NAME,
-        "chat": chat_history,
-        "summary": None,
-        "trend": "Unknown"
+    """
+    Render home page with chat history.
+    """
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "bot_name": BOT_NAME,
+            "chat": chat_history,
+            "summary": None,
+            "trend": "Unknown"
+        }
+    )
+
+
+@app.get("/api/market")
+async def api_market():
+    """
+    Market data API (sidebar or AJAX use).
+    """
+    return JSONResponse({
+        "summary": nepse_fetcher.get_market_summary(),
+        "trend": nepse_fetcher.get_market_trend(),
+        "index": nepse_fetcher.get_nepse_index(),
+        "status": nepse_fetcher.get_market_status()
     })
 
-@app.route('/api/market')
-def api_market():
-    """
-    API endpoint for market data.
-    Can be used by frontend for real-time updates.
-    """
-    return jsonify({
-        'summary': nepse_fetcher.get_market_summary(),
-        'trend': nepse_fetcher.get_market_trend(),
-        'index': nepse_fetcher.get_nepse_index(),
-        'status': nepse_fetcher.get_market_status()
-    })
 
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(request: Request, message: str = Form(...)):
-
-    symbol = "BOKL"  # change if needed
+    """
+    Chat endpoint: get trading signal + AI response.
+    """
+    symbol = "BOKL"  # Change dynamically if needed
 
     try:
+        # Fetch market data
         market_data = get_market_data(symbol)
 
+        # AI trading signal
         ai_result = get_trade_signal(symbol, market_data, message)
 
-        signal = ai_result["signal"]
-        confidence = ai_result["confidence"]
-        reasoning = ai_result["reasoning"]
+        signal = ai_result.get("signal", "UNKNOWN")
+        confidence = ai_result.get("confidence", "0%")
+        reasoning = ai_result.get("reasoning", "No reasoning provided.")
 
         formatted_reply = f"""
 <div class="signal-card {signal.lower()}">
@@ -62,17 +80,22 @@ async def chat(request: Request, message: str = Form(...)):
     <div class="reasoning">{reasoning}</div>
 </div>
 """
-
     except Exception as e:
-        formatted_reply = f"Error: {str(e)}"
+        formatted_reply = f"<div class='error'>Error: {str(e)}</div>"
+        market_data = {}
 
+    # Update chat history
     chat_history.append(("You", message))
-    chat_history.append(("TradeMind", formatted_reply))
+    chat_history.append((BOT_NAME, formatted_reply))
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "bot_name": BOT_NAME,
-        "chat": chat_history,
-        "summary": market_data.get("summary") if 'market_data' in locals() else None,
-        "trend": market_data.get("trend") if 'market_data' in locals() else "Unknown"
-    })
+    # Render template with updated data
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "bot_name": BOT_NAME,
+            "chat": chat_history,
+            "summary": market_data.get("summary"),
+            "trend": market_data.get("trend", "Unknown")
+        }
+    )
