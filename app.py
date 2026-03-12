@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from nepse_data import nepse_fetcher
 from analysis import get_market_data
 from ai_service import get_trade_signal
+from chat_service import generate_bot_reply
 
 # Load environment variables
 load_dotenv()
@@ -61,15 +62,13 @@ async def chat(request: Request, message: str = Form(...)):
     symbol = "BOKL"  # Change dynamically if needed
 
     try:
-        # Fetch market data
-        market_data = get_market_data(symbol)
+        # Use shared bot service to get structured reply
+        reply = generate_bot_reply(message, symbol)
 
-        # AI trading signal
-        ai_result = get_trade_signal(symbol, market_data, message)
-
-        signal = ai_result.get("signal", "UNKNOWN")
-        confidence = ai_result.get("confidence", "0%")
-        reasoning = ai_result.get("reasoning", "No reasoning provided.")
+        signal = reply["signal"]
+        confidence = reply["confidence"]
+        reasoning = reply["reasoning"]
+        market_data = reply["market"]
 
         formatted_reply = f"""
 <div class="signal-card {signal.lower()}">
@@ -99,3 +98,27 @@ async def chat(request: Request, message: str = Form(...)):
             "trend": market_data.get("trend", "Unknown")
         }
     )
+
+
+@app.post("/api/chat")
+async def api_chat(payload: dict):
+    """
+    JSON chat endpoint for backend integration.
+
+    Expected body:
+    {
+        "message": "Should I buy BOKL now?",
+        "symbol": "BOKL"  # optional
+    }
+    """
+    message = payload.get("message", "").strip()
+    symbol = payload.get("symbol", "BOKL")
+
+    if not message:
+        return JSONResponse({"error": "message is required"}, status_code=400)
+
+    try:
+        reply = generate_bot_reply(message, symbol)
+        return JSONResponse(reply)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
