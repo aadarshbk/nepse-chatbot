@@ -1,146 +1,117 @@
 # nepse_data.py
 """
-NEPSE Data Fetcher
-Handles market summary, index, status, and stock prices.
-Currently uses mock data (safe stubs).
-Can be replaced with real scraping/API logic later.
+NEPSE Data Fetcher — currently uses safe stubs (no random fake data).
+Replace each STUB block with a real scraper when ready.
+Good sources: nepalstock.com.np | merolagani.com | nepsealpha.com
 """
-
 import datetime
-import random
+import logging
 import time
+
+logger = logging.getLogger(__name__)
+
+NST_OFFSET    = datetime.timezone(datetime.timedelta(hours=5, minutes=45))
+TRADING_DAYS  = {6, 0, 1, 2, 3}   # Sun=6, Mon=0, Tue=1, Wed=2, Thu=3
+MARKET_OPEN   = datetime.time(11, 0)
+MARKET_CLOSE  = datetime.time(15, 0)
+CACHE_TTL_SEC = 60
+
+
+def _now_nst() -> datetime.datetime:
+    return datetime.datetime.now(tz=NST_OFFSET)
 
 
 class NepseDataFetcher:
     def __init__(self):
-        # Simple in-memory cache
-        self.cache = {}
-        self.cache_ttl = 60  # seconds
+        self._cache: dict[str, tuple] = {}
 
-    # -------------------------------------------------------------------------
-    # Utility: caching
-    # -------------------------------------------------------------------------
-    def _get_cached(self, key):
-        data = self.cache.get(key)
-        if not data:
+    def _get_cached(self, key: str):
+        entry = self._cache.get(key)
+        if not entry:
             return None
-
-        value, timestamp = data
-        if time.time() - timestamp > self.cache_ttl:
+        value, ts = entry
+        if time.monotonic() - ts > CACHE_TTL_SEC:
+            del self._cache[key]
             return None
-
         return value
 
-    def _set_cache(self, key, value):
-        self.cache[key] = (value, time.time())
+    def _set_cache(self, key: str, value) -> None:
+        self._cache[key] = (value, time.monotonic())
 
-    # -------------------------------------------------------------------------
-    # Market Summary (Sidebar)
-    # -------------------------------------------------------------------------
-    def get_market_summary(self):
-        """Returns data for the sidebar (close, date, volume, transactions)"""
+    def get_market_status(self) -> str:
+        cached = self._get_cached("market_status")
+        if cached:
+            return cached
+        now     = _now_nst()
+        weekday = now.weekday()
+        current = now.time().replace(second=0, microsecond=0)
+        if weekday not in TRADING_DAYS:
+            status = "Closed (weekend)"
+        elif MARKET_OPEN <= current < MARKET_CLOSE:
+            status = "Open"
+        else:
+            status = "Closed (outside trading hours)"
+        self._set_cache("market_status", status)
+        return status
 
+    def get_market_summary(self) -> dict:
         cached = self._get_cached("market_summary")
         if cached:
             return cached
-
+        # ── STUB ──────────────────────────────────────────────────────────────
         summary = {
-            "close": round(random.uniform(2100, 2300), 2),
-            "date": datetime.datetime.now().strftime("%Y-%m-%d"),
-            "volume": f"{round(random.uniform(10, 25), 1)}M",
-            "transactions": str(random.randint(400, 700))
+            "close": "N/A", "date": _now_nst().strftime("%Y-%m-%d"),
+            "volume": "N/A", "transactions": "N/A",
+            "note": "Live data not yet connected.",
         }
-
+        # ── END STUB ──────────────────────────────────────────────────────────
         self._set_cache("market_summary", summary)
         return summary
 
-    # -------------------------------------------------------------------------
-    # Market Trend
-    # -------------------------------------------------------------------------
-    def get_market_trend(self):
-        """Returns overall market trend"""
-
+    def get_market_trend(self) -> str:
         cached = self._get_cached("market_trend")
         if cached:
             return cached
-
-        trend = random.choice([
-            "Positive 🟢",
-            "Negative 🔴",
-            "Neutral ⚪"
-        ])
-
+        # ── STUB ──────────────────────────────────────────────────────────────
+        trend = "neutral"
+        # ── END STUB ──────────────────────────────────────────────────────────
         self._set_cache("market_trend", trend)
         return trend
 
-    # -------------------------------------------------------------------------
-    # NEPSE Index
-    # -------------------------------------------------------------------------
-    def get_nepse_index(self):
-        """Returns NEPSE index data"""
-
+    def get_nepse_index(self) -> dict:
         cached = self._get_cached("nepse_index")
         if cached:
             return cached
-
+        now = _now_nst()
+        # ── STUB ──────────────────────────────────────────────────────────────
         index_data = {
-            "index_name": "NEPSE",
-            "value": round(random.uniform(2100, 2300), 2),
-            "change": round(random.uniform(-25, 25), 2),
-            "date": datetime.datetime.now().strftime("%Y-%m-%d"),
-            "time": datetime.datetime.now().strftime("%H:%M:%S")
+            "index_name": "NEPSE", "value": "N/A", "change": "N/A",
+            "date": now.strftime("%Y-%m-%d"), "time": now.strftime("%H:%M NST"),
+            "note": "Live data not yet connected.",
         }
-
+        # ── END STUB ──────────────────────────────────────────────────────────
         self._set_cache("nepse_index", index_data)
         return index_data
 
-    # -------------------------------------------------------------------------
-    # Market Status
-    # -------------------------------------------------------------------------
-    def get_market_status(self):
-        """Returns whether market is open or closed"""
-
-        now = datetime.datetime.now()
-        hour = now.hour
-        weekday = now.weekday()  # 0 = Monday, 6 = Sunday
-
-        # NEPSE is typically closed on weekends
-        if weekday >= 5:
-            return "Market is CLOSED 🔴 (Weekend)"
-
-        # Approx NEPSE trading hours (11:00 – 15:00)
-        if 11 <= hour < 15:
-            return "Market is OPEN 🟢"
-        else:
-            return "Market is CLOSED 🔴"
-
-    # -------------------------------------------------------------------------
-    # Live Stock Price
-    # -------------------------------------------------------------------------
-    def get_live_price(self, symbol):
-        """Returns live price for a specific stock symbol"""
-
-        symbol = symbol.upper()
+    def get_live_price(self, symbol: str) -> dict:
+        symbol    = symbol.upper().strip()
         cache_key = f"stock_{symbol}"
-
-        cached = self._get_cached(cache_key)
+        cached    = self._get_cached(cache_key)
         if cached:
             return cached
-
+        # ── STUB ──────────────────────────────────────────────────────────────
         price_data = {
-            "symbol": symbol,
-            "ltp": round(random.uniform(300, 3000), 2),
-            "change": round(random.uniform(-5, 5), 2),
-            "percent_change": round(random.uniform(-3, 3), 2),
-            "status": "Open" if "OPEN" in self.get_market_status() else "Closed",
-            "timestamp": datetime.datetime.now().isoformat()
+            "symbol": symbol, "ltp": "N/A", "change": "N/A",
+            "percent_change": "N/A", "market_status": self.get_market_status(),
+            "timestamp": _now_nst().isoformat(),
+            "note": "Live price data not yet connected.",
         }
-
+        # ── END STUB ──────────────────────────────────────────────────────────
         self._set_cache(cache_key, price_data)
         return price_data
 
+    def clear_cache(self) -> None:
+        self._cache.clear()
 
-# -------------------------------------------------------------------------
-# Global instance (used by app.py)
-# -------------------------------------------------------------------------
+
 nepse_fetcher = NepseDataFetcher()
