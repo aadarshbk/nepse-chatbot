@@ -19,7 +19,7 @@ app = FastAPI(title="TradeMind — NEPSE Chatbot")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-BOT_NAME = "TradeMind"
+BOT_NAME           = "TradeMind"
 MAX_MESSAGE_LENGTH = 500
 MAX_HISTORY_LENGTH = 20
 
@@ -102,6 +102,10 @@ async def chat(
         logger.error(f"generate_bot_reply failed: {e}")
         bot_text = f"Sorry, something went wrong: {str(e)}"
 
+    # Ensure response always starts with a capital letter
+    if bot_text:
+        bot_text = bot_text[0].upper() + bot_text[1:]
+
     history.append({"role": "user", "text": message})
     history.append({"role": "bot",  "text": bot_text})
     save_session(session_id, history)
@@ -127,8 +131,11 @@ async def api_chat(payload: ChatRequest):
                     symbol=symbol,
                     history=history,
                 )
+        reasoning = reply.get("reasoning", "")
+        if reasoning:
+            reasoning = reasoning[0].upper() + reasoning[1:]
         history.append({"role": "user", "text": message})
-        history.append({"role": "bot",  "text": reply.get("reasoning", "")})
+        history.append({"role": "bot",  "text": reasoning})
         save_session(payload.session_id, history)
         return JSONResponse(reply)
     except Exception as e:

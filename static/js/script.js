@@ -1,81 +1,128 @@
-// static/js/script.js
+// // static/js/script.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.querySelector('form');
-    const input = document.querySelector('input[name="message"]');
-    const messagesContainer = document.querySelector('.messages');
-    const submitBtn = document.querySelector('button[type="submit"]');
+// /* ── Theme ───────────────────────────────────────────────────────────────── */
+// window.toggleTheme = function () {
+//     var current = localStorage.getItem('tm_theme') || 'dark';
+//     var next    = current === 'dark' ? 'light' : 'dark';
+//     document.documentElement.setAttribute('data-theme', next);
+//     localStorage.setItem('tm_theme', next);
+// };
 
-    // Auto-scroll to bottom on load
-    scrollToBottom();
+// (function () {
+//     var t = localStorage.getItem('tm_theme') || 'dark';
+//     document.documentElement.setAttribute('data-theme', t);
+// })();
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Stop page reload
 
-        const message = input.value.trim();
-        if (!message) return;
+// document.addEventListener('DOMContentLoaded', function () {
 
-        // 1. Add User Message to UI immediately
-        appendMessage('You', message);
-        input.value = '';
-        setLoading(true);
+//     var form      = document.getElementById('chat-form');
+//     var input     = document.getElementById('msg-input');
+//     var submitBtn = document.getElementById('send-btn');
+//     var messages  = document.getElementById('messages');
 
-        try {
-            // 2. Send to Backend
-            const formData = new FormData();
-            formData.append('message', message);
+//     scrollToBottom();
+//     fetchMarketStatus();
+//     setInterval(fetchMarketStatus, 60000);
 
-            const response = await fetch('/chat', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest' // Tell backend we want JSON
-                }
-            });
+//     /* ── Form submit ────────────────────────────────────────────────────── */
+//     if (form) {
+//         form.addEventListener('submit', function (e) {
+//             var text = input.value.trim();
+//             if (!text) { e.preventDefault(); return; }
+//             showLoading(text);
+//             submitBtn.disabled = true;
+//         });
+//     }
 
-            const data = await response.json();
+//     /* ── Wire up data-prompt elements (chips, sector cards, topic items) ── */
+//     document.querySelectorAll('[data-prompt]').forEach(function(el) {
+//         el.addEventListener('click', function() {
+//             sendPrompt(this.dataset.prompt);
+//         });
+//     });
 
-            // 3. Add Bot Response to UI
-            if (data.reply) {
-                appendMessage('NepseBot', data.reply);
-            } else {
-                appendMessage('NepseBot', 'Error: No response from server.');
-            }
+//     /* ── Loading bubbles ────────────────────────────────────────────────── */
+//     function showLoading(text) {
+//         var empty = document.getElementById('empty-state');
+//         if (empty) empty.remove();
 
-        } catch (error) {
-            console.error('Error:', error);
-            appendMessage('NepseBot', 'Error: Could not connect to server.');
-        } finally {
-            setLoading(false);
-            scrollToBottom();
-        }
-    });
+//         var u = document.createElement('div');
+//         u.className = 'msg user';
+//         u.innerHTML =
+//             '<div class="msg-meta"><div class="avatar">U</div>You</div>' +
+//             '<div class="msg-bubble">' + escapeHtml(text) + '</div>' +
+//             '<button class="edit-btn" onclick="editMessage(\'' +
+//                 text.replace(/\\/g,'\\\\').replace(/'/g,"\\'") +
+//             '\')">✏ Edit</button>';
+//         messages.appendChild(u);
 
-    function appendMessage(sender, text) {
-        const div = document.createElement('div');
-        div.className = `message ${sender === 'You' ? 'user' : 'bot'}`;
-        div.innerHTML = `
-            <div class="sender">${sender}</div>
-            <div class="text">${text.replace(/\n/g, '<br>')}</div>
-        `;
-        messagesContainer.appendChild(div);
-        scrollToBottom();
-    }
+//         var b = document.createElement('div');
+//         b.className = 'msg bot';
+//         b.innerHTML =
+//             '<div class="msg-meta"><div class="avatar">TM</div>TradeMind</div>' +
+//             '<div class="msg-bubble">' +
+//                 '<div class="loading-dots">' +
+//                     '<span class="ld"></span>' +
+//                     '<span class="ld"></span>' +
+//                     '<span class="ld"></span>' +
+//                 '</div>' +
+//             '</div>';
+//         messages.appendChild(b);
+//         scrollToBottom();
+//     }
 
-    function setLoading(isLoading) {
-        if (isLoading) {
-            submitBtn.disabled = true;
-            submitBtn.innerText = '...';
-            input.disabled = true;
-        } else {
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'Send';
-            input.disabled = false;
-            input.focus();
-        }
-    }
+//     /* ── Quick prompts ──────────────────────────────────────────────────── */
+//     window.sendPrompt = function (text) {
+//         if (!input || !form) return;
+//         input.value = text;
+//         showLoading(text);
+//         submitBtn.disabled = true;
+//         form.submit();
+//     };
 
-    function scrollToBottom() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-});
+//     /* ── Edit message ───────────────────────────────────────────────────── */
+//     window.editMessage = function (text) {
+//         input.value = text;
+//         input.focus();
+//         input.setSelectionRange(text.length, text.length);
+//     };
+
+//     /* ── Clear chat ─────────────────────────────────────────────────────── */
+//     window.clearChat = async function () {
+//         var sidEl = document.querySelector('input[name="session_id"]');
+//         var sid   = sidEl ? sidEl.value : 'default';
+//         try {
+//             await fetch('/api/chat/history?session_id=' + encodeURIComponent(sid), {
+//                 method: 'DELETE'
+//             });
+//         } catch (err) {
+//             console.warn('Could not clear history:', err);
+//         }
+//         window.location.reload();
+//     };
+
+//     /* ── Market status ──────────────────────────────────────────────────── */
+//     async function fetchMarketStatus() {
+//         try {
+//             var res  = await fetch('/api/market');
+//             var data = await res.json();
+//             var el   = document.getElementById('market-status');
+//             if (el && data.status) el.textContent = data.status;
+//         } catch (e) { /* silent */ }
+//     }
+
+//     /* ── Helpers ────────────────────────────────────────────────────────── */
+//     function scrollToBottom() {
+//         if (messages) messages.scrollTop = messages.scrollHeight;
+//     }
+
+//     function escapeHtml(s) {
+//         return s
+//             .replace(/&/g,  '&amp;')
+//             .replace(/</g,  '&lt;')
+//             .replace(/>/g,  '&gt;')
+//             .replace(/"/g,  '&quot;');
+//     }
+
+// });
