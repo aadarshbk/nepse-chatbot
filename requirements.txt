@@ -8,3 +8,6 @@ langchain
 langchain-community
 chromadb
 sentence-transformers
+torch
+transformers
+huggingface-hub

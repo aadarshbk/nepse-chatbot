@@ -1,0 +1,13 @@
+# Development requirements (extends base requirements.txt)
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+# Code quality and formatting
+black==23.12.1
+ruff==0.1.14
+mypy==1.7.1
+
+# Additional testing tools
+pytest-cov==4.1.0
+pytest-xdist==3.5.0
