@@ -3,11 +3,22 @@ version: '3.8'
 services:
   chatbot:
     build: .
+    container_name: tradmind-chatbot
     ports:
       - "8000:8000"
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      - DEBUG=False
     volumes:
       - ./data:/app/data
+      - ./templates:/app/templates
+      - ./static:/app/static
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
