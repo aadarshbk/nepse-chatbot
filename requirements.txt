@@ -13,3 +13,4 @@ transformers
 huggingface-hub
 pandas
 numpy
+python-multipart
