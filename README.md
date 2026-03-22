@@ -22,6 +22,15 @@ A FastAPI-based chatbot for NEPSE (Nepal Stock Exchange) data and trading insigh
 
 ## Production Deployment
 
+### Render Deployment
+
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Set the following environment variables in Render dashboard:
+   - `GROQ_API_KEY`: Your Groq API key
+   - `FLASK_SECRET_KEY`: A secret key for session management
+4. Render will automatically use the `render.yaml` configuration
+
 ### Using Docker
 
 1. Build the Docker image:
