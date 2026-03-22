@@ -11,3 +11,6 @@ sentence-transformers
 torch
 transformers
 huggingface-hub
+pandas
+numpy
+python-multipart
