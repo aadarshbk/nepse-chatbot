@@ -14,3 +14,4 @@ huggingface-hub
 pandas
 numpy
 python-multipart
+aioredis
