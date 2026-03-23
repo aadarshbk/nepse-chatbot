@@ -237,7 +237,37 @@
 
         /* ── Responsive ── */
         @media(max-width:1100px){.main{grid-template-columns:240px minmax(0,1fr);}.sr{display:none;}.tkw{display:none;}.nst-badge{display:none;}}
-        @media(max-width:720px){.app{padding:0 .75rem;}.main{grid-template-columns:1fr;}.sl{display:none;}body{overflow:auto;}.msgs{max-height:60vh;}}
+        @media(max-width:720px){
+            .app{padding:0 .75rem;}
+            .hdr{flex-wrap:wrap;gap:.5rem;}
+            .hdr-l{flex:1;}
+            .tkw{display:none;}
+            .main{grid-template-columns:1fr;gap:.65rem;}
+            .sl,.sr{display:none;}
+            .panel{border-radius:14px;}
+            body{overflow:auto;}
+            .msgs{max-height:55vh;}
+            .cmp{padding:.7rem .8rem;gap:.5rem;}
+            .cmp input{font-size:.92rem;}
+            .sbtn{width:38px;height:38px;}
+            .chdr .ctit{font-size:.92rem;}
+            .ctit{font-size:1rem;}
+            .csub{font-size:.64rem;}
+            .slbl{font-size:.58rem;}
+            .snaptxt,.disc,.ttxt,.sname,.sdesc{font-size:.76rem;}
+            .msg{max-width:100%;}
+            .mb{font-size:.9rem;}
+            .mrow{font-size:.74rem;}
+        }
+        @media(max-width:520px){
+            .hdr{padding:.65rem 0;}
+            .brand h1{font-size:1rem;}
+            .brand p{font-size:.65rem;}
+            .nbtn{font-size:.64rem;padding:.32rem .55rem;}
+            .mbadge,.nst-badge{display:none;}
+            .cmp input{padding:.68rem .9rem;}
+            .msgs{max-height:50vh;}
+        }
     </style>
 </head>
 <body>
