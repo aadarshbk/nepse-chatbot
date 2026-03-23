@@ -1,104 +1,122 @@
-# chat_service.py
-import re
+# app/api/chat.py
+"""Chat API routes without Redis dependency."""
+from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 import logging
-from typing import Any
 
-from analysis import get_market_data
-from ai_service import get_trade_signal
-from utils import get_symbol_sector
-from knowledge_base import get_context_for_query
+from app.models import ChatRequest
+from app.services.chat_service import generate_bot_reply
+from app.utils import extract_stock_symbol, sanitize
+from app.core import settings
 
-logger   = logging.getLogger(__name__)
-BOT_NAME = "TradeMind"
+logger = logging.getLogger(__name__)
+router = APIRouter()
 
-
-def _strip_markdown(text: str) -> str:
-    """
-    Remove all markdown formatting from AI responses so they
-    display as clean plain text in the browser.
-
-    Handles: **bold**, *italic*, # headers, ``` code blocks, `inline code`
-    """
-    text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)  # fenced code blocks
-    text = re.sub(r'`(.+?)`',   r'\1', text)                # inline code
-    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)            # **bold**
-    text = re.sub(r'\*(.+?)\*',     r'\1', text)            # *italic*
-    text = re.sub(r'__(.+?)__',     r'\1', text)            # __bold__
-    text = re.sub(r'_(.+?)_',       r'\1', text)            # _italic_
-    text = re.sub(r'#{1,6}\s*',     '',    text)            # ## headings
-    text = re.sub(r'\n{3,}', '\n\n', text)                  # collapse extra blank lines
-    return text.strip()
+# In-memory chat sessions (works without Redis)
+chat_sessions: dict[str, list[dict]] = {}
+templates = Jinja2Templates(directory="templates")
 
 
-def _format_market_context(symbol: str, market_data: dict) -> str:
-    if not market_data or market_data.get("error"):
-        return f"No market data available for {symbol}. Answer from general NEPSE knowledge."
-
-    sector    = get_symbol_sector(symbol)
-    field_map = [
-        ("ltp",     "LTP"),
-        ("change",  "Change today"),
-        ("high",    "52-week High"),
-        ("low",     "52-week Low"),
-        ("volume",  "Volume"),
-        ("trend",   "Trend"),
-        ("rsi",     "RSI"),
-        ("sma20",   "SMA20"),
-        ("sma50",   "SMA50"),
-        ("summary", "Summary"),
-    ]
-    lines = [f"Stock : {symbol}  ({sector})"]
-    for key, label in field_map:
-        value = market_data.get(key)
-        if value is not None:
-            lines.append(f"{label:<16}: {value}")
-    return "\n".join(lines)
+def get_session(session_id: str) -> list[dict]:
+    """Get or create chat session."""
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+    return chat_sessions[session_id]
 
 
-def generate_bot_reply(
-    message: str,
-    symbol: str = "NABIL",
-    history: list[dict] | None = None,
-) -> dict[str, Any]:
+def save_session(session_id: str, history: list[dict]) -> None:
+    """Save session with max history limit."""
+    chat_sessions[session_id] = history[-settings.max_history_length:]
 
-    # Step 1: Fetch market data
-    market_data: dict = {}
+
+@router.get("/", response_class=HTMLResponse)
+async def home(request: Request, session_id: str = "default"):
+    """Render home page with chat interface."""
+    return templates.TemplateResponse("index.html", {
+        "request":    request,
+        "bot_name":   settings.bot_name,
+        "chat":       get_session(session_id),
+        "summary":    None,
+        "trend":      None,
+        "session_id": session_id,
+    })
+
+
+@router.post("/chat", response_class=HTMLResponse)
+async def chat_form(
+    request: Request,
+    message: str = Form(...),
+    session_id: str = Form(default="default"),
+):
+    """Handle chat form submission."""
+    message = sanitize(message)
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    history = get_session(session_id)
+    symbol  = extract_stock_symbol(message, fallback="NABIL")
+
     try:
-        market_data = get_market_data(symbol) or {}
-    except Exception as e:
-        logger.warning(f"Market data unavailable for {symbol}: {e}")
-
-    # Step 2: Build context for AI
-    market_context = _format_market_context(symbol, market_data)
-
-    # Step 2b: Append relevant knowledge base entries
-    kb_context = get_context_for_query(message)
-    if kb_context:
-        market_context += f"\n\nRELEVANT NEPSE KNOWLEDGE:\n{kb_context}"
-
-    # Step 3: Call the AI
-    reasoning = ""
-    try:
-        reasoning = get_trade_signal(
+        reply = generate_bot_reply(
             message=message,
-            history=history,
-            market_context=market_context,
+            symbol=symbol,
+            history=history
         )
-        reasoning = _strip_markdown(reasoning)
-    except RuntimeError as e:
-        reasoning = str(e)
-    except Exception as e:
-        logger.error(f"Unexpected AI error: {e}")
-        reasoning = "Sorry, I encountered an unexpected error. Please try again."
+        bot_text    = reply.get("reasoning", "Sorry, I could not generate a response.")
+        market_data = reply.get("market", {})
 
-    # Step 4: Return structured response
-    return {
-        "bot_name":  BOT_NAME,
-        "symbol":    symbol,
-        "reasoning": reasoning,
-        "market": {
-            "summary": market_data.get("summary"),
-            "trend":   market_data.get("trend", "unknown"),
-            "ltp":     market_data.get("ltp"),
-        },
-    }
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        bot_text = f"Sorry, something went wrong: {str(e)}"
+        market_data = {}
+
+    # Capitalize first letter
+    bot_text = bot_text[0].upper() + bot_text[1:] if bot_text else bot_text
+
+    history.append({"role": "user", "text": message})
+    history.append({"role": "bot",  "text": bot_text})
+    save_session(session_id, history)
+
+    return templates.TemplateResponse("index.html", {
+        "request":    request,
+        "bot_name":   settings.bot_name,
+        "chat":       chat_sessions[session_id],
+        "summary":    market_data.get("summary"),
+        "trend":      market_data.get("trend"),
+        "session_id": session_id,
+    })
+
+
+@router.post("/api/chat")
+async def api_chat(payload: ChatRequest):
+    """Handle API chat request."""
+    message = sanitize(payload.message)
+    symbol  = extract_stock_symbol(message, fallback=payload.symbol)
+    history = get_session(payload.session_id)
+
+    try:
+        reply = generate_bot_reply(
+            message=message,
+            symbol=symbol,
+            history=history
+        )
+        reasoning = reply.get("reasoning", "")
+        if reasoning:
+            reasoning = reasoning[0].upper() + reasoning[1:]
+
+        history.append({"role": "user", "text": message})
+        history.append({"role": "bot",  "text": reasoning})
+        save_session(payload.session_id, history)
+        return JSONResponse(reply)
+
+    except Exception as e:
+        logger.error(f"API chat error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.delete("/api/chat/history")
+async def clear_history(session_id: str = "default"):
+    """Clear chat history for session."""
+    chat_sessions.pop(session_id, None)
+    return JSONResponse({"message": f"History cleared for '{session_id}'."})
