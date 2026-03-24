@@ -1,9 +1,9 @@
-# app/api/chat.py
 """Chat API routes."""
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import logging
+import asyncio
 
 from app.models import ChatRequest
 from app.services import generate_bot_reply
@@ -15,6 +15,7 @@ router = APIRouter()
 
 # In-memory chat sessions
 chat_sessions: dict[str, list[dict]] = {}
+session_locks: dict[str, asyncio.Lock] = {}  # Lock per session
 templates = Jinja2Templates(directory="templates")
 
 
@@ -22,27 +23,31 @@ def get_session(session_id: str) -> list[dict]:
     """Get or create chat session."""
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
+        session_locks[session_id] = asyncio.Lock()
     return chat_sessions[session_id]
 
 
-def save_session(session_id: str, history: list[dict]) -> None:
-    """Save session with max history limit."""
-    chat_sessions[session_id] = history[-settings.max_history_length:]
+async def save_session(session_id: str, history: list[dict]) -> None:
+    """Save session with max history limit (thread-safe)."""
+    lock = session_locks.setdefault(session_id, asyncio.Lock())
+    async with lock:
+        chat_sessions[session_id] = history[-settings.max_history_length:]
 
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
     """Render home page with chat interface."""
+    history = get_session(session_id)
     return templates.TemplateResponse(
         "index.html",
-        context={
+        {
             "request": request,
             "bot_name": settings.bot_name,
-            "chat": get_session(session_id),
+            "chat": history,
             "summary": None,
             "trend": None,
             "session_id": session_id,
-        }
+        },
     )
 
 
@@ -54,7 +59,6 @@ async def chat_form(
 ):
     """Handle chat form submission."""
     message = sanitize(message)
-
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
@@ -82,18 +86,18 @@ async def chat_form(
     history.append({"role": "user", "text": message})
     history.append({"role": "bot", "text": bot_text})
 
-    save_session(session_id, history)
+    await save_session(session_id, history)
 
     return templates.TemplateResponse(
         "index.html",
-        context={
+        {
             "request": request,
             "bot_name": settings.bot_name,
-            "chat": chat_sessions[session_id],
+            "chat": history,
             "summary": market_data.get("summary"),
             "trend": market_data.get("trend"),
             "session_id": session_id,
-        }
+        },
     )
 
 
@@ -101,8 +105,8 @@ async def chat_form(
 async def api_chat(payload: ChatRequest):
     """Handle API chat request."""
     message = sanitize(payload.message)
-    symbol = extract_stock_symbol(message, fallback=payload.symbol)
     history = get_session(payload.session_id)
+    symbol = extract_stock_symbol(message, fallback=payload.symbol)
 
     try:
         reply = generate_bot_reply(
@@ -112,14 +116,13 @@ async def api_chat(payload: ChatRequest):
         )
 
         reasoning = reply.get("reasoning", "")
-
         if reasoning:
             reasoning = reasoning[0].upper() + reasoning[1:]
 
         history.append({"role": "user", "text": message})
         history.append({"role": "bot", "text": reasoning})
 
-        save_session(payload.session_id, history)
+        await save_session(payload.session_id, history)
 
         return JSONResponse(reply)
 
@@ -131,5 +134,8 @@ async def api_chat(payload: ChatRequest):
 @router.delete("/api/chat/history")
 async def clear_history(session_id: str = "default"):
     """Clear chat history for session."""
-    chat_sessions.pop(session_id, None)
+    lock = session_locks.setdefault(session_id, asyncio.Lock())
+    async with lock:
+        chat_sessions.pop(session_id, None)
+        session_locks.pop(session_id, None)
     return JSONResponse({"message": f"History cleared for '{session_id}'."})
