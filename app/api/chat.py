@@ -13,7 +13,7 @@ from app.core import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# In-memory chat sessions (use database or Redis in production)
+# In-memory chat sessions
 chat_sessions: dict[str, list[dict]] = {}
 templates = Jinja2Templates(directory="templates")
 
@@ -33,14 +33,17 @@ def save_session(session_id: str, history: list[dict]) -> None:
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
     """Render home page with chat interface."""
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "bot_name": settings.bot_name,
-        "chat": get_session(session_id),
-        "summary": None,
-        "trend": None,
-        "session_id": session_id,
-    })
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
+            "bot_name": settings.bot_name,
+            "chat": get_session(session_id),
+            "summary": None,
+            "trend": None,
+            "session_id": session_id,
+        }
+    )
 
 
 @router.post("/chat", response_class=HTMLResponse)
@@ -51,6 +54,7 @@ async def chat_form(
 ):
     """Handle chat form submission."""
     message = sanitize(message)
+
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
@@ -72,22 +76,25 @@ async def chat_form(
         logger.error(f"Chat error: {e}")
         bot_text = f"Sorry, something went wrong: {str(e)}"
 
-    # Ensure response always starts with a capital letter
     if bot_text:
         bot_text = bot_text[0].upper() + bot_text[1:]
 
     history.append({"role": "user", "text": message})
     history.append({"role": "bot", "text": bot_text})
+
     save_session(session_id, history)
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "bot_name": settings.bot_name,
-        "chat": chat_sessions[session_id],
-        "summary": market_data.get("summary"),
-        "trend": market_data.get("trend"),
-        "session_id": session_id,
-    })
+    return templates.TemplateResponse(
+        "index.html",
+        context={
+            "request": request,
+            "bot_name": settings.bot_name,
+            "chat": chat_sessions[session_id],
+            "summary": market_data.get("summary"),
+            "trend": market_data.get("trend"),
+            "session_id": session_id,
+        }
+    )
 
 
 @router.post("/api/chat")
@@ -103,13 +110,17 @@ async def api_chat(payload: ChatRequest):
             symbol=symbol,
             history=history,
         )
+
         reasoning = reply.get("reasoning", "")
+
         if reasoning:
             reasoning = reasoning[0].upper() + reasoning[1:]
 
         history.append({"role": "user", "text": message})
         history.append({"role": "bot", "text": reasoning})
+
         save_session(payload.session_id, history)
+
         return JSONResponse(reply)
 
     except Exception as e:
