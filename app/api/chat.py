@@ -1,9 +1,9 @@
-"""Chat API routes."""
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import logging
 import asyncio
+from copy import deepcopy
 
 from app.models import ChatRequest
 from app.services import generate_bot_reply
@@ -34,20 +34,34 @@ async def save_session(session_id: str, history: list[dict]) -> None:
         chat_sessions[session_id] = history[-settings.max_history_length:]
 
 
+def safe_context(**kwargs):
+    """Ensure template context is safe for Jinja2 caching."""
+    safe = {}
+    for k, v in kwargs.items():
+        # Copy lists/dicts to avoid mutables in cache
+        if isinstance(v, (list, dict)):
+            safe[k] = deepcopy(v)
+        elif v is None:
+            safe[k] = ""
+        else:
+            safe[k] = v
+    return safe
+
+
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
     """Render home page with chat interface."""
     history = get_session(session_id)
     return templates.TemplateResponse(
         "index.html",
-        {
-            "request": request,
-            "bot_name": settings.bot_name,
-            "chat": history,
-            "summary": None,
-            "trend": None,
-            "session_id": session_id,
-        },
+        safe_context(
+            request=request,
+            bot_name=settings.bot_name,
+            chat=history,
+            summary="",
+            trend="",
+            session_id=session_id,
+        ),
     )
 
 
@@ -90,14 +104,14 @@ async def chat_form(
 
     return templates.TemplateResponse(
         "index.html",
-        {
-            "request": request,
-            "bot_name": settings.bot_name,
-            "chat": history,
-            "summary": market_data.get("summary"),
-            "trend": market_data.get("trend"),
-            "session_id": session_id,
-        },
+        safe_context(
+            request=request,
+            bot_name=settings.bot_name,
+            chat=history,
+            summary=market_data.get("summary", ""),
+            trend=market_data.get("trend", ""),
+            session_id=session_id,
+        ),
     )
 
 
