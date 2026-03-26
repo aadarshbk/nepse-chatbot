@@ -70,21 +70,7 @@ async def home(request: Request, session_id: str = "default"):
     })
 
 # ---------- MARKET ----------
-@app.get("/api/market")
-async def api_market():
-    try:
-        return JSONResponse({
-            "summary": nepse_fetcher.get_market_summary(),
-            "trend": nepse_fetcher.get_market_trend(),
-            "index": nepse_fetcher.get_nepse_index(),
-            "status": nepse_fetcher.get_market_status(),
-        })
-    except Exception as e:
-        logger.error(f"Market error: {e}")
-        return JSONResponse(
-            {"error": "NEPSE data temporarily unavailable.", "detail": str(e)},
-            status_code=503
-        )
+#
 
 # ---------- CHAT FORM ----------
 @app.post("/chat", response_class=HTMLResponse)
