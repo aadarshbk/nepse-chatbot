@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import logging
+import os
 
 from app.core import settings
 from app.api import chat_router
@@ -21,8 +22,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# ✅ Healthcheck route (VERY IMPORTANT for Railway)
+@app.get("/")
+def health_check():
+    return {"status": "running"}
+
+# ✅ Mount static only if exists (prevents crash)
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    logger.info("Static folder mounted")
+else:
+    logger.warning("Static folder not found, skipping mount")
 
 # Include routers
 app.include_router(chat_router)
