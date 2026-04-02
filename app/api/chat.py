@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import logging
 import asyncio
+import os
 from copy import deepcopy
 
 from app.models import ChatRequest
@@ -13,14 +14,22 @@ from app.core import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# In-memory chat sessions
+# ---------------------------
+# SAFE PATH FOR TEMPLATES
+# ---------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "..", "..", "templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# ---------------------------
+# SESSION STORAGE
+# ---------------------------
 chat_sessions: dict[str, list[dict]] = {}
-session_locks: dict[str, asyncio.Lock] = {}  # Lock per session
-templates = Jinja2Templates(directory="templates")
+session_locks: dict[str, asyncio.Lock] = {}
 
 
 def get_session(session_id: str) -> list[dict]:
-    """Get or create chat session."""
+    """Get or create session safely."""
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
         session_locks[session_id] = asyncio.Lock()
@@ -28,30 +37,34 @@ def get_session(session_id: str) -> list[dict]:
 
 
 async def save_session(session_id: str, history: list[dict]) -> None:
-    """Save session with max history limit (thread-safe)."""
+    """Thread-safe session saving with limit."""
     lock = session_locks.setdefault(session_id, asyncio.Lock())
     async with lock:
         chat_sessions[session_id] = history[-settings.max_history_length:]
 
 
 def safe_context(**kwargs):
-    """Ensure template context is safe for Jinja2 caching."""
-    safe = {}
-    for k, v in kwargs.items():
-        # Copy lists/dicts to avoid mutables in cache
-        if isinstance(v, (list, dict)):
-            safe[k] = deepcopy(v)
-        elif v is None:
-            safe[k] = ""
-        else:
-            safe[k] = v
-    return safe
+    """Prevent Jinja mutation issues."""
+    return {
+        k: deepcopy(v) if isinstance(v, (list, dict))
+        else ("" if v is None else v)
+        for k, v in kwargs.items()
+    }
 
 
+def format_text(text: str) -> str:
+    """Safe capitalization."""
+    text = (text or "").strip()
+    return text[:1].upper() + text[1:] if text else ""
+
+
+# ---------------------------
+# HOME PAGE
+# ---------------------------
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
-    """Render home page with chat interface."""
     history = get_session(session_id)
+
     return templates.TemplateResponse(
         "index.html",
         safe_context(
@@ -65,40 +78,45 @@ async def home(request: Request, session_id: str = "default"):
     )
 
 
+# ---------------------------
+# HTML CHAT
+# ---------------------------
 @router.post("/chat", response_class=HTMLResponse)
 async def chat_form(
     request: Request,
     message: str = Form(...),
     session_id: str = Form(default="default"),
 ):
-    """Handle chat form submission."""
     message = sanitize(message)
+
     if not message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     history = get_session(session_id)
     symbol = extract_stock_symbol(message, fallback="NABIL")
-    market_data = {}
-    bot_text = ""
 
     try:
-        reply = generate_bot_reply(
+        # ⚡ NON-BLOCKING CALL (VERY IMPORTANT)
+        reply = await asyncio.to_thread(
+            generate_bot_reply,
             message=message,
             symbol=symbol,
             history=history,
         )
-        bot_text = reply.get("reasoning", "Sorry, I could not generate a response.")
+
+        bot_text = format_text(
+            reply.get("reasoning", "Sorry, I could not generate a response.")
+        )
         market_data = reply.get("market", {})
 
     except Exception as e:
-        logger.error(f"Chat error: {e}")
-        bot_text = f"Sorry, something went wrong: {str(e)}"
+        logger.exception("Chat error")
+        bot_text = f"Sorry, something went wrong."
 
-    if bot_text:
-        bot_text = bot_text[0].upper() + bot_text[1:]
-
-    history.append({"role": "user", "text": message})
-    history.append({"role": "bot", "text": bot_text})
+    history.extend([
+        {"role": "user", "text": message},
+        {"role": "bot", "text": bot_text},
+    ])
 
     await save_session(session_id, history)
 
@@ -115,41 +133,55 @@ async def chat_form(
     )
 
 
+# ---------------------------
+# API CHAT (JSON)
+# ---------------------------
 @router.post("/api/chat")
 async def api_chat(payload: ChatRequest):
-    """Handle API chat request."""
     message = sanitize(payload.message)
+
+    if not message:
+        return JSONResponse({"error": "Empty message"}, status_code=400)
+
     history = get_session(payload.session_id)
     symbol = extract_stock_symbol(message, fallback=payload.symbol)
 
     try:
-        reply = generate_bot_reply(
+        reply = await asyncio.to_thread(
+            generate_bot_reply,
             message=message,
             symbol=symbol,
             history=history,
         )
 
-        reasoning = reply.get("reasoning", "")
-        if reasoning:
-            reasoning = reasoning[0].upper() + reasoning[1:]
+        reasoning = format_text(reply.get("reasoning", ""))
 
-        history.append({"role": "user", "text": message})
-        history.append({"role": "bot", "text": reasoning})
+        history.extend([
+            {"role": "user", "text": message},
+            {"role": "bot", "text": reasoning},
+        ])
 
         await save_session(payload.session_id, history)
 
         return JSONResponse(reply)
 
     except Exception as e:
-        logger.error(f"API chat error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        logger.exception("API chat error")
+        return JSONResponse(
+            {"error": "Internal server error"},
+            status_code=500,
+        )
 
 
+# ---------------------------
+# CLEAR HISTORY
+# ---------------------------
 @router.delete("/api/chat/history")
 async def clear_history(session_id: str = "default"):
-    """Clear chat history for session."""
     lock = session_locks.setdefault(session_id, asyncio.Lock())
+
     async with lock:
         chat_sessions.pop(session_id, None)
         session_locks.pop(session_id, None)
-    return JSONResponse({"message": f"History cleared for '{session_id}'."})
+
+    return JSONResponse({"message": f"History cleared for '{session_id}'"})

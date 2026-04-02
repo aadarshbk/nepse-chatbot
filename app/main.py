@@ -23,7 +23,7 @@ app = FastAPI(
 )
 
 # ✅ Healthcheck route (VERY IMPORTANT for Railway)
-@app.get("/")
+@app.get("/health")
 def health_check():
     return {"status": "running"}
 
