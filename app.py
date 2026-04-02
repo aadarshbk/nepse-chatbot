@@ -97,7 +97,7 @@ async def chat(
             history=history,
         )
 
-        bot_text = reply.get("reasoning", "Sorry, I could not generate a response.")
+        bot_text = reply.get("reasoning", "Sorry, I would not be able to generate a response.Thank you for your understanding.")
         market_data = reply.get("market", {})
 
     except Exception as e:
