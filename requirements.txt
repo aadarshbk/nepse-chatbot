@@ -4,3 +4,4 @@ python-dotenv
 httpx
 groq
 langchain
+pydantic-settings
