@@ -18,7 +18,7 @@ router = APIRouter()
 # SAFE PATH FOR TEMPLATES
 # ---------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES_DIR = os.path.join(BASE_DIR, "..", "..", "templates")
+TEMPLATES_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "templates"))
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # ---------------------------
@@ -66,7 +66,6 @@ async def home(request: Request, session_id: str = "default"):
     history = get_session(session_id)
 
     return templates.TemplateResponse(
-        "index.html",
         safe_context(
             request=request,
             bot_name=settings.bot_name,
@@ -75,6 +74,7 @@ async def home(request: Request, session_id: str = "default"):
             trend="",
             session_id=session_id,
         ),
+        "index.html",
     )
 
 
@@ -121,7 +121,6 @@ async def chat_form(
     await save_session(session_id, history)
 
     return templates.TemplateResponse(
-        "index.html",
         safe_context(
             request=request,
             bot_name=settings.bot_name,
@@ -130,6 +129,7 @@ async def chat_form(
             trend=market_data.get("trend", ""),
             session_id=session_id,
         ),
+        "index.html",
     )
 
 

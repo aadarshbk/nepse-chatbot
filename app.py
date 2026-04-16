@@ -9,9 +9,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-from nepse_data import nepse_fetcher
-from chat_service import generate_bot_reply
-from utils import extract_stock_symbol
+from app.services.nepse_service import nepse_fetcher
+from app.services.chat_service import generate_bot_reply
+from app.utils.helpers import extract_stock_symbol
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -153,3 +153,8 @@ async def api_chat(payload: ChatRequest):
 async def clear_history(session_id: str = "default"):
     chat_sessions.pop(session_id, None)
     return JSONResponse({"message": f"History cleared for '{session_id}'."})
+
+# ---------- MARKET API ----------
+@app.get("/api/market")
+async def get_market():
+    return JSONResponse(nepse_fetcher.get_market_summary())
