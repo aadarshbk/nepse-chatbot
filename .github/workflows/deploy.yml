@@ -24,7 +24,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Authenticate with Railway
-        run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
+        run: railway login --token ${{ secrets.railway_token }}
 
       - name: Deploy to Railway
         run: railway deploy --yes
