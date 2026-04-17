@@ -525,68 +525,65 @@ window.addEventListener('load', function() {
     var c = document.getElementById('cover');
     if (!c) return;
     c.style.transition = 'opacity .3s ease';
-    c.style.opacity    = '0';
+    c.style.opacity = '0';
     setTimeout(function(){ c.style.display = 'none'; }, 320);
 });
 
-/* ── Nepal Date & Time — Asia/Kathmandu (UTC+5:45) ───────────────────────── */
+/* ── Nepal Date & Time — Asia/Kathmandu ───────────────────────────────── */
 function updateClock() {
     var dEl = document.getElementById('nst-date');
     var tEl = document.getElementById('nst-time');
     if (!dEl || !tEl) return;
-
     var now = new Date();
-
-    /* Date part — international format */
     var dp = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'Asia/Kathmandu',
-        weekday:  'short',
-        day:      'numeric',
-        month:    'short',
-        year:     'numeric',
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
     }).formatToParts(now);
-
-    /* Time part */
     var tp = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'Asia/Kathmandu',
-        hour:     '2-digit',
-        minute:   '2-digit',
-        second:   '2-digit',
-        hour12:   false,
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
     }).formatToParts(now);
-
     var d = {}, t = {};
     dp.forEach(function(x){ d[x.type] = x.value; });
     tp.forEach(function(x){ t[x.type] = x.value; });
-
     dEl.textContent = d.weekday + ', ' + d.day + ' ' + d.month + ' ' + d.year;
     tEl.textContent = t.hour + ':' + t.minute + ':' + t.second + ' NST';
 }
-
 updateClock();
 setInterval(updateClock, 1000);
 
-/* ── DOM ready ───────────────────────────────────────────────────────────── */
+/* ── DOM ready ─────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
-
     var form    = document.getElementById('cf');
     var inp     = document.getElementById('mi');
     var btn     = document.getElementById('sb');
     var msgs    = document.getElementById('msgs');
     var sending = document.getElementById('sending');
+    var emp     = document.getElementById('emp');
 
-  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
 
     function esc(s) {
-        return String(s)
-            .replace(/&/g,'&amp;')
-            .replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;')
-            .replace(/"/g,'&quot;');
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    function showSending() {
-        if (sending) sending.classList.add('show');
+    function showSending() { if (sending) sending.classList.add('show'); }
+    function hideSending() { if (sending) sending.classList.remove('show'); }
+
+    /* ✅ Append message to chat UI */
+    function appendMessage(role, text) {
+        if (emp) emp.style.display = 'none';
+        var msgDiv = document.createElement('div');
+        msgDiv.className = 'msg ' + (role === 'user' ? 'u' : 'b');
+        var avatar = role === 'user' ? 'U' : 'TM';
+        var name = role === 'user' ? 'You' : 'TradeMind';
+        msgDiv.innerHTML = 
+            '<div class="mmeta"><div class="av">' + avatar + '</div>' + name + '</div>' +
+            '<div class="mb">' + esc(text) + '</div>' +
+            (role === 'user' ? '<button class="ebtn" data-msg="' + esc(text) + '">✏ Edit</button>' : '');
+        msgs.appendChild(msgDiv);
+        msgs.scrollTop = msgs.scrollHeight;
     }
 
     /* 1. Theme toggle */
@@ -594,40 +591,86 @@ document.addEventListener('DOMContentLoaded', function() {
         setTheme(localStorage.getItem(TKEY) === 'light' ? 'dark' : 'light');
     });
 
-    /* 2. Form submit */
-    form.addEventListener('submit', function(e) {
+    /* ✅ 2. FIXED: AJAX Form Submit — This is the critical fix */
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault(); // 🔥 STOP page reload
+        
         var text = inp.value.trim();
-        if (!text) { e.preventDefault(); return; }
+        if (!text) return;
+        
         showSending();
         btn.disabled = true;
+        inp.disabled = true;
+        
+        try {
+            var sessionId = document.querySelector('input[name="session_id"]').value;
+            
+            // 🔥 Call your API endpoint — adjust URL if needed
+            var response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, session_id: sessionId })
+            });
+            
+            // 🔥 Validate JSON response
+            var ct = response.headers.get('content-type');
+            if (!ct || !ct.includes('application/json')) {
+                var raw = await response.text();
+                console.error('Expected JSON, got HTML:', raw.substring(0, 300));
+                throw new Error('Server returned HTML. Check API route.');
+            }
+            
+            var data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || data.error || 'Request failed');
+            }
+            
+            // ✅ Display messages
+            appendMessage('user', text);
+            appendMessage('bot', data.reasoning || data.reply || data.message || data.content || JSON.stringify(data));            
+            inp.value = '';
+            
+        } catch (err) {
+            console.error('Chat error:', err);
+            appendMessage('user', text);
+            appendMessage('bot', '⚠️ ' + (err.message || 'Connection error'));
+        } finally {
+            hideSending();
+            btn.disabled = false;
+            inp.disabled = false;
+            inp.focus();
+        }
     });
 
     /* 3. Edit button */
     msgs.addEventListener('click', function(e) {
         var eb = e.target.closest('.ebtn');
         if (!eb) return;
-        var text = eb.getAttribute('data-msg');
-        inp.value = text;
+        inp.value = eb.getAttribute('data-msg');
         inp.focus();
-        inp.setSelectionRange(text.length, text.length);
+        inp.setSelectionRange(inp.value.length, inp.value.length);
     });
 
-    /* 4. Chips, cards, topics */
+    /* 4. Chips/cards/topics — auto-submit */
     document.addEventListener('click', function(e) {
         var el = e.target.closest('[data-p]');
         if (!el) return;
         var text = el.getAttribute('data-p');
         inp.value = text;
-        showSending();
-        btn.disabled = true;
-        form.submit();
+        inp.focus();
+        // Trigger submit via fetch (reuse the fixed handler)
+        var evt = new Event('submit', { bubbles: true, cancelable: true });
+        if (form.dispatchEvent(evt)) {
+            form.requestSubmit();
+        }
     });
 
     /* 5. New chat */
     document.getElementById('nchat').addEventListener('click', async function() {
         var sid = document.querySelector('input[name="session_id"]');
         try {
-            await fetch('/api/chat/history?session_id=' +
+            await fetch('/api/chat/history?session_id=' + 
                 encodeURIComponent(sid ? sid.value : 'default'),
                 { method: 'DELETE' });
         } catch(e) {}
@@ -637,15 +680,16 @@ document.addEventListener('DOMContentLoaded', function() {
     /* 6. Market status */
     async function fetchStatus() {
         try {
-            var r  = await fetch('/api/market');
-            var d  = await r.json();
-            var el = document.getElementById('mstat');
-            if (el && d.status) el.textContent = d.status;
+            var r = await fetch('/api/market');
+            if (r.ok) {
+                var d = await r.json();
+                var el = document.getElementById('mstat');
+                if (el && d.status) el.textContent = d.status;
+            }
         } catch(e) {}
     }
     fetchStatus();
     setInterval(fetchStatus, 60000);
-
 });
 </script>
 </body>

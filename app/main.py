@@ -1,12 +1,13 @@
 """Main FastAPI application."""
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 import logging
 import os
 
 from app.core import settings
-from app.api import chat_router
+from app.api import chat_router, market_router
 
 # Load environment variables
 load_dotenv()
@@ -36,5 +37,6 @@ else:
 
 # Include routers
 app.include_router(chat_router)
+app.include_router(market_router)
 
 logger.info(f"App initialized: {settings.app_name}")
