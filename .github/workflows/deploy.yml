@@ -4,10 +4,13 @@ name: Deploy to Railway
 on:
   push:
     branches:
-      - nepse-chatbot
-  # pull_request:
-  #   branches:
-  #     - nepse-chatbot
+      - main
+      - nepse-bot
+  pull_request:
+    branches:
+      - main
+      - nepse-bot
+  workflow_dispatch: {}
 
 jobs:
   deploy:
