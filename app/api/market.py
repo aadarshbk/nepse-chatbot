@@ -3,8 +3,9 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from app.services.nepse_service import nepse_fetcher
 
-router = APIRouter()
+# ✅ CHANGE: router → market_router (to match __init__.py import)
+market_router = APIRouter()
 
-@router.get("/api/market")
+@market_router.get("/api/market")  # ✅ CHANGE: @router. → @market_router.
 async def get_market():
     return JSONResponse(nepse_fetcher.get_market_summary())
