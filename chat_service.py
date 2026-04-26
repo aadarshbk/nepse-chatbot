@@ -30,6 +30,20 @@ def save_session(session_id: str, history: list[dict]) -> None:
     chat_sessions[session_id] = history[-settings.max_history_length:]
 
 
+# ✅ NEW: Serve chat.html at GET /chat (fixes 405 error)
+@router.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request, session_id: str = "default"):
+    """Render the chat UI from chat.html."""
+    return templates.TemplateResponse("chat.html", {
+        "request":    request,
+        "bot_name":   settings.bot_name,
+        "chat":       get_session(session_id),
+        "summary":    None,
+        "trend":      None,
+        "session_id": session_id,
+    })
+
+
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
     """Render home page with chat interface."""

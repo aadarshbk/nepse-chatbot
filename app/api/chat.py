@@ -1,3 +1,5 @@
+# app/api/chat.py
+"""Chat API routes without Redis dependency."""
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -12,7 +14,9 @@ from app.utils import extract_stock_symbol, sanitize
 from app.core import settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+
+# ✅ FIX 1: Rename to match main.py import
+chat_router = APIRouter()
 
 # ---------------------------
 # SAFE PATH FOR TEMPLATES
@@ -59,9 +63,29 @@ def format_text(text: str) -> str:
 
 
 # ---------------------------
+# ✅ FIX 2: NEW ROUTE - Serve chat.html at GET /chat
+# ---------------------------
+@chat_router.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request, session_id: str = "default"):
+    """Render the chat UI from chat.html."""
+    history = get_session(session_id)
+    return templates.TemplateResponse(
+        safe_context(
+            request=request,
+            bot_name=settings.bot_name,
+            chat=history,
+            summary="",
+            trend="",
+            session_id=session_id,
+        ),
+        "chat.html",  # ✅ Serve your new UI
+    )
+
+
+# ---------------------------
 # HOME PAGE
 # ---------------------------
-@router.get("/", response_class=HTMLResponse)
+@chat_router.get("/", response_class=HTMLResponse)
 async def home(request: Request, session_id: str = "default"):
     history = get_session(session_id)
 
@@ -79,9 +103,9 @@ async def home(request: Request, session_id: str = "default"):
 
 
 # ---------------------------
-# HTML CHAT
+# HTML CHAT (Form fallback)
 # ---------------------------
-@router.post("/chat", response_class=HTMLResponse)
+@chat_router.post("/chat", response_class=HTMLResponse)
 async def chat_form(
     request: Request,
     message: str = Form(...),
@@ -96,7 +120,7 @@ async def chat_form(
     symbol = extract_stock_symbol(message, fallback="NABIL")
 
     try:
-        # ⚡ NON-BLOCKING CALL (VERY IMPORTANT)
+        # ⚡ NON-BLOCKING CALL
         reply = await asyncio.to_thread(
             generate_bot_reply,
             message=message,
@@ -129,14 +153,14 @@ async def chat_form(
             trend=market_data.get("trend", ""),
             session_id=session_id,
         ),
-        "index.html",
+        "index.html",  # Keep index.html for form fallback
     )
 
 
 # ---------------------------
-# API CHAT (JSON)
+# API CHAT (JSON) - Used by your JavaScript frontend
 # ---------------------------
-@router.post("/api/chat")
+@chat_router.post("/api/chat")
 async def api_chat(payload: ChatRequest):
     message = sanitize(payload.message)
 
@@ -176,7 +200,7 @@ async def api_chat(payload: ChatRequest):
 # ---------------------------
 # CLEAR HISTORY
 # ---------------------------
-@router.delete("/api/chat/history")
+@chat_router.delete("/api/chat/history")
 async def clear_history(session_id: str = "default"):
     lock = session_locks.setdefault(session_id, asyncio.Lock())
 
