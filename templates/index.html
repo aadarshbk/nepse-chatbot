@@ -195,7 +195,7 @@ nav.scrolled{background:rgba(6,7,10,.97);border-bottom-color:var(--b2)}
 .fc-num{position:absolute;top:1.4rem;right:1.6rem;font-family:'DM Mono',monospace;font-size:2rem;font-weight:500;color:var(--b1);line-height:1;transition:color .3s,transform .3s}
 .fc:hover .fc-num{color:rgba(255,255,255,.04);transform:scale(1.1)}
 
-/* ── TRADEMIND ── */
+/* ── TRADEMIND CAROUSEL (NEW) ── */
 .tm-sec{padding:7rem 5%;background:var(--ink2);border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);position:relative;z-index:1}
 .tm-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
 .tm-badges{display:flex;flex-direction:column;gap:.6rem;margin-top:1.6rem}
@@ -204,10 +204,43 @@ nav.scrolled{background:rgba(6,7,10,.97);border-bottom-color:var(--b2)}
 .tmb-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .tmb-t{font-size:.81rem;font-weight:500}
 .tmb-s{font-size:.68rem;color:var(--t3)}
+
+/* Carousel Container */
 .tm-frame{border-radius:18px;overflow:hidden;border:1px solid var(--b1);background:var(--ink);position:relative;height:580px;transition:border-color .3s,transform .4s cubic-bezier(.23,1,.32,1)}
 .tm-frame:hover{border-color:var(--b2);transform:translateY(-4px)}
 .tm-frame::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(184,255,87,.03),transparent);pointer-events:none;z-index:1}
-.tm-frame iframe{width:100%;height:100%;border:none;display:block}
+
+.carousel-container{position:relative;height:100%;overflow:hidden}
+.tm-card{position:absolute;inset:0;padding:2rem;display:flex;flex-direction:column;opacity:0;transform:translateX(60px) scale(0.95);transition:all 0.6s cubic-bezier(0.23,1,0.32,1);pointer-events:none}
+.tm-card.active{opacity:1;transform:translateX(0) scale(1);pointer-events:all}
+.tc-header{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+.tc-ico{width:48px;height:48px;border-radius:12px;background:var(--ac3);border:1px solid rgba(184,255,87,0.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.tc-meta{flex:1}
+.tc-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--t1);margin-bottom:0.2rem}
+.tc-sub{font-size:0.75rem;color:var(--t3);font-family:'DM Mono',monospace}
+.tc-body{flex:1;display:flex;flex-direction:column;gap:0.9rem;overflow-y:auto;padding-right:0.5rem}
+.msg{display:flex;animation:msgSlide 0.4s ease}
+.msg.user{justify-content:flex-end}
+.msg.bot{justify-content:flex-start}
+.msg-bubble{max-width:85%;padding:0.9rem 1.1rem;border-radius:14px;font-size:0.82rem;line-height:1.6;animation:bubblePop 0.3s ease}
+.msg.user .msg-bubble{background:var(--ac);color:#050801;border-bottom-right-radius:4px;font-weight:500}
+.msg.bot .msg-bubble{background:var(--s1);border:1px solid var(--b1);color:var(--t2);border-bottom-left-radius:4px}
+.msg.bot .msg-bubble strong{color:var(--ac);display:block;margin-bottom:0.4rem;font-family:'DM Mono',monospace;font-size:0.75rem;letter-spacing:0.03em}
+.signal-buy{border-left:3px solid var(--ac)!important;background:rgba(184,255,87,0.08)!important}
+.tc-tag{position:absolute;bottom:1.5rem;right:2rem;font-size:0.68rem;color:var(--t3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.8rem;background:var(--s1);border-radius:6px;border:1px solid var(--b1)}
+
+/* Carousel Controls */
+.carousel-controls{position:absolute;bottom:1.5rem;left:2rem;display:flex;align-items:center;gap:1rem;z-index:10}
+.cc-btn{width:36px;height:36px;border-radius:8px;background:var(--s1);border:1px solid var(--b1);color:var(--t2);cursor:none;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all 0.2s}
+.cc-btn:hover{background:var(--ac);color:#050801;border-color:var(--ac);transform:scale(1.05)}
+.carousel-dots{display:flex;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--b1);cursor:none;transition:all 0.3s}
+.dot.active{background:var(--ac);width:24px;border-radius:4px}
+.carousel-progress{position:absolute;top:0;left:0;right:0;height:2px;background:var(--b1)}
+.progress-bar{height:100%;background:var(--ac);width:0%;transition:width 0.1s linear}
+
+@keyframes msgSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bubblePop{0%{transform:scale(0.9)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 
 /* ── REVIEWS ── */
 .revs{padding:7rem 5%;position:relative;z-index:1}
@@ -315,6 +348,9 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
   .nav-links{display:none}
   #chatpanel{width:calc(100vw - 24px);right:12px;bottom:90px;height:70vh}
   #chat-btn{right:16px;bottom:18px}
+  .tm-card{padding:1.5rem}
+  .tc-tag{bottom:1rem;right:1rem}
+  .carousel-controls{bottom:1rem;left:1rem}
 }
 </style>
 </head>
@@ -504,7 +540,7 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
   </div>
 </section>
 
-<!-- TRADEMIND -->
+<!-- TRADEMIND CAROUSEL (REPLACES IFRAME) -->
 <section class="tm-sec" id="trademind">
   <div class="tm-grid">
     <div class="reveal reveal-left">
@@ -519,11 +555,157 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
       </div>
       <div style="margin-top:2rem;display:flex;gap:.9rem;flex-wrap:wrap">
         <a class="hbtn prime" href="#" onclick="openChat();return false;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Open TradeMind AI</a>
-        <a class="hbtn ghost" href="https://tradmind-chatbot-development.up.railway.app/" target="_blank">Full screen →</a>
+        <a class="hbtn ghost" href="#" onclick="document.querySelector('.tm-card:nth-child(2)').click();return false">See Examples →</a>
       </div>
     </div>
-    <div class="tm-frame reveal reveal-d2">
-      <iframe src="https://tradmind-chatbot-development.up.railway.app/" title="TradeMind AI — NEPSE Chatbot" loading="lazy" allow="clipboard-write"></iframe>
+    
+    <!-- CAROUSEL REPLACES IFRAME -->
+    <div class="tm-frame reveal reveal-d2" id="trademind-showcase">
+      <div class="carousel-container">
+        
+        <!-- Card 1: Price Query -->
+        <div class="tm-card active">
+          <div class="tc-header">
+            <div class="tc-ico">💬</div>
+            <div class="tc-meta">
+              <div class="tc-title">Ask About Any Stock</div>
+              <div class="tc-sub">Real-time analysis & insights</div>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="msg user">
+              <div class="msg-bubble">What's the outlook for NABIL Bank?</div>
+            </div>
+            <div class="msg bot">
+              <div class="msg-bubble">
+                <strong>NABIL Analysis:</strong><br>
+                • LTP: Rs. 1,245 (+1.8%)<br>
+                • Support: 1,220 | Resistance: 1,280<br>
+                • RSI: 62 (Bullish momentum)<br>
+                • Recommendation: HOLD with upside potential
+              </div>
+            </div>
+          </div>
+          <div class="tc-tag">Price Analysis</div>
+        </div>
+
+        <!-- Card 2: Tax Rules -->
+        <div class="tm-card">
+          <div class="tc-header">
+            <div class="tc-ico">📋</div>
+            <div class="tc-meta">
+              <div class="tc-title">Tax & Regulations</div>
+              <div class="tc-sub">SEBON rules explained simply</div>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="msg user">
+              <div class="msg-bubble">What is capital gain tax?</div>
+            </div>
+            <div class="msg bot">
+              <div class="msg-bubble">
+                <strong>Capital Gain Tax (NEPSE):</strong><br>
+                • Holding > 1 year: 5%<br>
+                • Holding < 1 year: 7.5%<br>
+                • Applied on profit only<br>
+                • Auto-deducted by broker
+              </div>
+            </div>
+          </div>
+          <div class="tc-tag">Tax Knowledge</div>
+        </div>
+
+        <!-- Card 3: Market Concept -->
+        <div class="tm-card">
+          <div class="tc-header">
+            <div class="tc-ico">📊</div>
+            <div class="tc-meta">
+              <div class="tc-title">Learn Market Concepts</div>
+              <div class="tc-sub">T+2, Circuit limits & more</div>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="msg user">
+              <div class="msg-bubble">Explain T+2 settlement</div>
+            </div>
+            <div class="msg bot">
+              <div class="msg-bubble">
+                <strong>T+2 Settlement:</strong><br>
+                • Trade day + 2 working days<br>
+                • Shares credited in DEMAT<br>
+                • Payment must be completed<br>
+                • Example: Buy Monday → Settle Wednesday
+              </div>
+            </div>
+          </div>
+          <div class="tc-tag">Education</div>
+        </div>
+
+        <!-- Card 4: Buy/Sell Signal -->
+        <div class="tm-card">
+          <div class="tc-header">
+            <div class="tc-ico">🎯</div>
+            <div class="tc-meta">
+              <div class="tc-title">AI Trading Signals</div>
+              <div class="tc-sub">Data-driven recommendations</div>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="msg user">
+              <div class="msg-bubble">Should I buy HDL now?</div>
+            </div>
+            <div class="msg bot">
+              <div class="msg-bubble signal-buy">
+                <strong>Signal: BUY</strong><br>
+                Confidence: 78%<br>
+                Entry: 3,080-3,100<br>
+                Target: 3,250 | Stop: 3,020<br>
+                Reason: Breakout + volume surge
+              </div>
+            </div>
+          </div>
+          <div class="tc-tag">AI Signal</div>
+        </div>
+
+        <!-- Card 5: IPO Query -->
+        <div class="tm-card">
+          <div class="tc-header">
+            <div class="tc-ico">🏦</div>
+            <div class="tc-meta">
+              <div class="tc-title">IPO & Investment</div>
+              <div class="tc-sub">MeroShare guidance</div>
+            </div>
+          </div>
+          <div class="tc-body">
+            <div class="msg user">
+              <div class="msg-bubble">How to apply for IPO?</div>
+            </div>
+            <div class="msg bot">
+              <div class="msg-bubble">
+                <strong>IPO Application Steps:</strong><br>
+                1. Open MeroShare account<br>
+                2. Link DEMAT & bank<br>
+                3. Apply during IPO period<br>
+                4. Wait for allotment result
+              </div>
+            </div>
+          </div>
+          <div class="tc-tag">IPO Guide</div>
+        </div>
+
+      </div>
+
+      <!-- Carousel Controls -->
+      <div class="carousel-controls">
+        <button class="cc-btn prev" onclick="moveCarousel(-1)">←</button>
+        <div class="carousel-dots" id="carousel-dots"></div>
+        <button class="cc-btn next" onclick="moveCarousel(1)">→</button>
+      </div>
+
+      <!-- Auto-play indicator -->
+      <div class="carousel-progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -571,7 +753,7 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
       <p>The intelligence layer behind Nepal's capital markets. Built by Aadarsh for serious NEPSE investors. Powered by TradeMind AI.</p>
     </div>
     <div class="fc-col"><h4>Platform</h4><ul><li><a href="#">Live charts</a></li><li><a href="#">AI signals</a></li><li><a href="#">Broker flow</a></li><li><a href="#">Portfolio tracker</a></li><li><a href="#">Market scanner</a></li></ul></div>
-    <div class="fc-col"><h4>Resources</h4><ul><li><a href="#">NEPSE news</a></li><li><a href="#">Research reports</a></li><li><a href="#">Blog</a></li><li><a href="https://tradmind-chatbot-development.up.railway.app/" target="_blank">TradeMind AI</a></li></ul></div>
+    <div class="fc-col"><h4>Resources</h4><ul><li><a href="#">NEPSE news</a></li><li><a href="#">Research reports</a></li><li><a href="#">Blog</a></li><li><a href="#" onclick="openChat();return false">TradeMind AI</a></li></ul></div>
     <div class="fc-col"><h4>Company</h4><ul><li><a href="#">About Aadarsh</a></li><li><a href="#">Pricing</a></li><li><a href="#">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul></div>
   </div>
   <div class="fb">
@@ -768,6 +950,80 @@ function toggleChat() {
   else p.classList.remove('open');
 }
 function openChat() { chatOpen = false; toggleChat(); }
+
+/* ══ CAROUSEL LOGIC ══ */
+let currentCard = 0;
+const cards = document.querySelectorAll('.tm-card');
+const totalCards = cards.length;
+let autoplayInterval;
+let progressInterval;
+
+// Create dots
+const dotsContainer = document.getElementById('carousel-dots');
+for (let i = 0; i < totalCards; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 0 ? ' active' : '');
+  dot.onclick = () => goToCard(i);
+  dotsContainer.appendChild(dot);
+}
+
+const dots = document.querySelectorAll('.dot');
+const progressBar = document.getElementById('progress-bar');
+
+function goToCard(index) {
+  cards[currentCard].classList.remove('active');
+  dots[currentCard].classList.remove('active');
+  
+  currentCard = index;
+  
+  cards[currentCard].classList.add('active');
+  dots[currentCard].classList.add('active');
+  
+  resetAutoplay();
+}
+
+function moveCarousel(direction) {
+  let newIndex = currentCard + direction;
+  if (newIndex < 0) newIndex = totalCards - 1;
+  if (newIndex >= totalCards) newIndex = 0;
+  goToCard(newIndex);
+}
+
+function resetAutoplay() {
+  clearInterval(autoplayInterval);
+  clearInterval(progressInterval);
+  progressBar.style.transition = 'none';
+  progressBar.style.width = '0%';
+  
+  setTimeout(() => {
+    progressBar.style.transition = 'width 5s linear';
+    progressBar.style.width = '100%';
+  }, 50);
+  
+  autoplayInterval = setInterval(() => {
+    moveCarousel(1);
+  }, 5000);
+}
+
+// Start autoplay
+resetAutoplay();
+
+// Pause on hover
+document.getElementById('trademind-showcase').addEventListener('mouseenter', () => {
+  clearInterval(autoplayInterval);
+  clearInterval(progressInterval);
+  progressBar.style.transition = 'none';
+});
+
+document.getElementById('trademind-showcase').addEventListener('mouseleave', () => {
+  resetAutoplay();
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') moveCarousel(-1);
+  if (e.key === 'ArrowRight') moveCarousel(1);
+});
 </script>
 </body>
 </html>
