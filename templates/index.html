@@ -298,16 +298,21 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
 .fc-col a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s,transform .2s;font-weight:300;display:inline-block}
 .fc-col a:hover{color:var(--ac);transform:translateX(4px)}
 .fb{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--b1);padding-top:1.8rem;font-size:.73rem;color:var(--t3);font-family:'DM Mono',monospace}
+.footer-x{display:inline-flex;align-items:center;gap:.4rem;color:var(--t2);text-decoration:none;transition:color .2s,transform .2s}
+.footer-x-wrap{flex:1;text-align:center}
+.footer-x-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:#fff;color:#000;flex-shrink:0}
+.footer-x-icon svg{display:block;fill:none;stroke:currentColor;}
+.footer-x:hover{color:#fff;transform:translateX(2px)}
 
 /* ── CHAT ── */
-#chat-btn{position:fixed;bottom:28px;right:28px;z-index:500;width:54px;height:54px;border-radius:14px;background:var(--ac);border:none;cursor:none;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(184,255,87,.2);transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+#chat-btn{position:fixed;bottom:28px;right:28px;z-index:500;width:54px;height:54px;border-radius:14px;background:var(--ac);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(184,255,87,.2);transition:all .3s cubic-bezier(.34,1.56,.64,1)}
 #chat-btn:hover{transform:scale(1.12) translateY(-3px);box-shadow:0 16px 40px rgba(184,255,87,.3)}
 #chat-btn svg{width:22px;height:22px}
 #chat-notif{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--rd);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:8.5px;color:#fff;font-family:'DM Mono',monospace;font-weight:500;animation:notifPulse 2.5s 3s infinite}
 @keyframes notifPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
 
 /* ── CHAT PANEL ── */
-#chatpanel{position:fixed;bottom:96px;right:28px;z-index:499;width:400px;height:600px;background:var(--ink2);border:1px solid var(--b2);border-radius:20px;overflow:hidden;display:none;flex-direction:column;transform:scale(.88) translateY(24px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+#chatpanel{position:fixed;bottom:96px;right:28px;z-index:499;width:400px;height:600px;background:var(--ink2);border:1px solid var(--b2);border-radius:20px;overflow:hidden;display:none;flex-direction:column;transform:scale(.88) translateY(24px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 24px 80px rgba(0,0,0,.6);max-height:calc(100vh - 48px)}
 #chatpanel.open{display:flex;transform:scale(1) translateY(0);opacity:1}
 .cp-top{background:var(--ink3);border-bottom:1px solid var(--b1);padding:.95rem 1.1rem;display:flex;align-items:center;gap:11px;flex-shrink:0;position:relative}
 .cp-top::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--ac),transparent)}
@@ -316,9 +321,10 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
 .cp-nm{font-weight:600;font-size:.9rem}
 .cp-st{font-family:'DM Mono',monospace;font-size:.66rem;color:var(--ac);display:flex;align-items:center;gap:4px;margin-top:1px}
 .cp-st::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--ac);animation:blink 2s infinite;flex-shrink:0}
-.cp-close{margin-left:auto;background:transparent;border:none;color:var(--t3);cursor:none;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:1rem}
-.cp-close:hover{background:var(--s1);color:var(--t1)}
-.cp-iframe{flex:1;border:none;display:block;background:var(--ink)}
+.cp-close{margin-left:auto;background:transparent;border:none;color:var(--t3);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:1rem}
+.cp-close:hover{background:var(--s1);color:var(--t1);transform:scale(1.08)}
+.cp-close:active{transform:scale(0.96)}
+.cp-iframe{flex:1;border:none;display:block;background:var(--ink);min-height:0;height:100%}
 .cp-foot{background:var(--ink3);border-top:1px solid var(--b1);padding:.45rem 1rem;font-size:.63rem;color:var(--t3);text-align:center;font-family:'DM Mono',monospace;flex-shrink:0}
 
 /* ── SCROLL REVEAL ── */
@@ -346,11 +352,14 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
   .stats,.rev-grid,.pgrid,.fg,.tm-grid{grid-template-columns:1fr!important;gap:.9rem}
   .metrics{grid-template-columns:1fr 1fr}
   .nav-links{display:none}
-  #chatpanel{width:calc(100vw - 24px);right:12px;bottom:90px;height:70vh}
+  #chatpanel{width:calc(100vw - 24px);right:12px;bottom:90px;height:70vh;max-height:calc(100vh - 32px);border-radius:18px}
   #chat-btn{right:16px;bottom:18px}
   .tm-card{padding:1.5rem}
   .tc-tag{bottom:1rem;right:1rem}
   .carousel-controls{bottom:1rem;left:1rem}
+}
+@media(max-width:520px){
+  #chatpanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:75vh;max-height:calc(100vh - 24px);border-radius:18px}
 }
 </style>
 </head>
@@ -758,6 +767,7 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
   </div>
   <div class="fb">
     <span>© 2026 AadarshStocks · Kathmandu, Nepal</span>
+    <span class="footer-x-wrap"><a class="footer-x" href="https://x.com/aadarsh2222" target="_blank" rel="noreferrer noopener">Built by my X <span class="footer-x-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 20L18.5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 4L7.5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a></span>
     <span>TradeMind AI powered by LLaMA 3.3</span>
   </div>
 </footer>
@@ -771,7 +781,7 @@ footer{background:var(--ink2);border-top:1px solid var(--b1);padding:4rem 5% 2re
   <div class="cp-top">
     <div class="cp-av"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#050801" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
     <div><div class="cp-nm">TradeMind AI</div><div class="cp-st">Online · NEPSE Expert</div></div>
-    <button class="cp-close" onclick="toggleChat()">✕</button>
+    <button class="cp-close" onclick="toggleChat()" title="Close TradeMind AI" aria-label="Close chat">×</button>
   </div>
   <iframe class="cp-iframe"
   src="/chat"
