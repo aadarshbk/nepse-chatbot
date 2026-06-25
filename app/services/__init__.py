@@ -9,6 +9,11 @@ from app.services.knowledge_service import (
     get_context_for_query,
 )
 from app.services.chat_service import generate_bot_reply
+from app.services.hybrid_rag_service import (
+    get_hybrid_rag_service,
+    retrieve_hybrid_context,
+    HybridRAGService,
+)
 
 __all__ = [
     "nepse_fetcher",
@@ -20,4 +25,7 @@ __all__ = [
     "get_all_topics",
     "get_context_for_query",
     "generate_bot_reply",
+    "get_hybrid_rag_service",
+    "retrieve_hybrid_context",
+    "HybridRAGService",
 ]

@@ -8,3 +8,7 @@ pydantic-settings
 pandas
 python-multipart
 jinja2
+sentence-transformers
+rank-bm25
+numpy
+scikit-learn
