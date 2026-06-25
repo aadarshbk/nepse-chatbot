@@ -4,7 +4,7 @@ from typing import Any
 
 from app.services.analysis_service import get_market_data
 from app.services.ai_service import get_trade_signal
-from app.services.knowledge_service import get_context_for_query
+from app.services.hybrid_rag_service import retrieve_hybrid_context
 from app.utils import get_symbol_sector, strip_markdown
 from app.core import settings
 
@@ -42,7 +42,7 @@ def generate_bot_reply(
     symbol: str = "NABIL",
     history: list[dict] | None = None,
 ) -> dict[str, Any]:
-    """Generate a bot reply for user message."""
+    """Generate a bot reply for user message using hybrid RAG."""
     
     # Step 1: Fetch market data
     market_data: dict = {}
@@ -54,10 +54,20 @@ def generate_bot_reply(
     # Step 2: Build context for AI
     market_context = _format_market_context(symbol, market_data)
 
-    # Step 2b: Append relevant knowledge base entries
-    kb_context = get_context_for_query(message)
-    if kb_context:
-        market_context += f"\n\nRELEVANT NEPSE KNOWLEDGE:\n{kb_context}"
+    # Step 2b: Use hybrid RAG to get relevant knowledge
+    try:
+        # Retrieve with hybrid approach (semantic + keyword search)
+        kb_context = retrieve_hybrid_context(
+            message, 
+            top_k=5,
+            dense_weight=0.7,  # 70% weight on semantic similarity
+            sparse_weight=0.3  # 30% weight on keyword matching
+        )
+        if kb_context:
+            market_context += f"\n\n{kb_context}"
+    except Exception as e:
+        logger.warning(f"Hybrid RAG retrieval failed: {e}")
+        # Gracefully degrade - could fall back to old method here if needed
 
     # Step 3: Call the AI
     reasoning = ""
