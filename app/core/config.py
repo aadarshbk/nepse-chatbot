@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     
     # AI/Groq Configuration
     groq_api_key: str = Field(default="", env="GROQ_API_KEY")
+
+    # Voice/Sarvam Configuration
+    sarvam_api_key: str = Field(default="", env="SARVAM_API_KEY")
+    max_audio_upload_bytes: int = Field(default=10 * 1024 * 1024, env="MAX_AUDIO_UPLOAD_BYTES")
     
     # Security
     secret_key: str = Field(default="your-secret-key-change-in-production", env="FLASK_SECRET_KEY")

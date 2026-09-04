@@ -49,8 +49,11 @@ pip install -r requirements.txt
 Create `.env` file with:
 ```bash
 GROQ_API_KEY=your_api_key_here
+SARVAM_API_KEY=your_sarvam_api_key_here
 FLASK_SECRET_KEY=your_secret_key_here
 ```
+
+Voice input and spoken replies use Sarvam AI. The browser microphone requires permission; `SARVAM_STT_MODEL`, `SARVAM_TTS_MODEL`, and `SARVAM_TTS_SPEAKER` can optionally override the defaults.
 
 4. **Run the application:**
 ```bash
