@@ -49,8 +49,11 @@ pip install -r requirements.txt
 Create `.env` file with:
 ```bash
 GROQ_API_KEY=your_api_key_here
+SARVAM_API_KEY=your_sarvam_api_key_here
 FLASK_SECRET_KEY=your_secret_key_here
 ```
+
+Voice input and spoken replies use Sarvam AI. The browser microphone requires permission; `SARVAM_STT_MODEL`, `SARVAM_TTS_MODEL`, and `SARVAM_TTS_SPEAKER` can optionally override the defaults.
 
 4. **Run the application:**
 ```bash
@@ -172,17 +175,17 @@ nepse-chatbot/
 │   │   ├── __init__.py
 │   │   ├── chat.py          # Chat endpoints
 │   │   ├── market.py        # Market endpoints
-│   │   └── rag.py          # RAG endpoints (NEW)
+│   │   └── rag.py          # RAG endpoints 
 │   ├── core/
 │   │   ├── config.py
-│   │   └── rag_config.py   # RAG configuration (NEW)
+│   │   └── rag_config.py   # RAG configuration 
 │   ├── services/
 │   │   ├── ai_service.py
 │   │   ├── analysis_service.py
-│   │   ├── chat_service.py  # Updated with Hybrid RAG
+│   │   ├── chat_service.py  
 │   │   ├── knowledge_service.py
-│   │   ├── hybrid_rag_service.py    # NEW
-│   │   └── rag_optimizer.py         # NEW
+│   │   ├── hybrid_rag_service.py   
+│   │   └── rag_optimizer.py         
 │   └── main.py
 ├── static/
 │   ├── css/
@@ -192,10 +195,9 @@ nepse-chatbot/
 │   └── index.html
 ├── tests/
 │   └── test_chat.py
-├── requirements.txt         # Updated
-├── README.md               # This file
-├── HYBRID_RAG_GUIDE.md     # RAG documentation (NEW)
-└── IMPROVEMENTS.md         # Changes summary (NEW)
+├── requirements.txt        
+├── HYBRID_RAG_GUIDE.md     # RAG documentation 
+└── IMPROVEMENTS.md         # Changes summary 
 ```
 
 ## 🛠️ Technologies
@@ -232,26 +234,5 @@ Contributions welcome! Please:
 2. Create a feature branch
 3. Submit a pull request
 
-## 📞 Support
-
-For issues or questions:
-1. Check [HYBRID_RAG_GUIDE.md](HYBRID_RAG_GUIDE.md) for detailed documentation
-2. Review [IMPROVEMENTS.md](IMPROVEMENTS.md) for recent changes
-3. Run `python test_hybrid_rag.py` to verify setup
-4. Check logs for error messages
-
-## 🎓 Learning Resources
-
-- [Hybrid RAG Systems](https://www.llamaindex.ai/blog/hybrid-search-using-bm25-and-embeddings)
-- [Sentence Transformers](https://www.sbert.net/)
-- [BM25 Algorithm](https://en.wikipedia.org/wiki/Okapi_BM25)
-- [Groq API Documentation](https://console.groq.com/docs)
-
----
-
-**Status:** ✅ Production Ready  
-**Last Updated:** 2026-06-25  
-**Version:** 2.0 (with Hybrid RAG)  
-**Maintained by:** Development Team
 
 Empowering NEPSE investors with AI-powered intelligence! 🚀

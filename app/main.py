@@ -7,7 +7,7 @@ import logging
 import os
 
 from app.core import settings
-from app.api import chat_router, market_router, rag_router
+from app.api import chat_router, market_router, rag_router, voice_router
 
 # Load environment variables
 load_dotenv()
@@ -39,5 +39,6 @@ else:
 app.include_router(chat_router)
 app.include_router(market_router)
 app.include_router(rag_router)
+app.include_router(voice_router)
 
 logger.info(f"App initialized: {settings.app_name}")
