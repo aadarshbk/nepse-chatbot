@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ bot_name }} — NEPSE Intelligence</title>
+    <title>{{ bot_name }} - NEPSE Intelligence</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23B8FF57'/><stop offset='100%25' stop-color='%239AE03A'/></linearGradient></defs><text x='50%25' y='54%25' font-family='DM Serif Display' font-size='28' font-weight='700' fill='%2306070A' text-anchor='middle' dominant-baseline='middle'>TM</text></svg>">
 
@@ -214,6 +214,9 @@ body{font-family:var(--fb);background:var(--ink);color:var(--t1);overflow:hidden
         .sbtn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(184,255,87,.35);background:var(--ac2);}
         .sbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
         .sbtn svg{width:18px;height:18px;}
+        .vbtn{width:44px;height:44px;flex-shrink:0;border-radius:12px;border:1px solid var(--b1);background:var(--s1);color:var(--t2);cursor:pointer;display:grid;place-items:center;font-size:1.1rem;transition:all .15s;}
+        .vbtn:hover,.vbtn.recording{border-color:var(--rd);color:var(--rd);background:rgba(255,77,106,.1);}
+        .vbtn:disabled{opacity:.45;cursor:not-allowed;}
 
         /* ── Right sidebar ── */
         .scard{padding:.65rem .8rem;border-radius:10px;border:1px solid var(--b1);background:var(--ink3);margin-bottom:.4rem;cursor:pointer;transition:all .18s;}
@@ -422,6 +425,7 @@ body{font-family:var(--fb);background:var(--ink);color:var(--t1);overflow:hidden
                 <input type="text" name="message" id="mi"
                     placeholder="Ask about NEPSE, RSI, tax rules, dividends…"
                     required autocomplete="off" maxlength="500" aria-label="Type your message">
+                <button type="button" class="vbtn" id="voice-btn" aria-label="Start voice input" title="Start voice input">●</button>
                 <button type="submit" class="sbtn" id="sb" aria-label="Send">→</button>
             </form>
         </div>
@@ -517,6 +521,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var inp     = document.getElementById('mi');
     var btn     = document.getElementById('sb');
     var msgs    = document.getElementById('msgs');
+    var voiceBtn = document.getElementById('voice-btn');
+    var voiceRequested = false;
     var sending = document.getElementById('sending');
     var emp     = document.getElementById('emp');
 
@@ -584,7 +590,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             appendMessage('user', text);
-            appendMessage('bot', data.reasoning || data.reply || data.message || data.content || JSON.stringify(data));            
+            var answer = data.reasoning || data.reply || data.message || data.content || JSON.stringify(data);
+            appendMessage('bot', answer);
+            if (voiceRequested) {
+                voiceRequested = false;
+                speakResponse(answer);
+            }
             inp.value = '';
             
         } catch (err) {
@@ -596,6 +607,72 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.disabled = false;
             inp.disabled = false;
             inp.focus();
+        }
+    });
+
+    async function speakResponse(text) {
+        try {
+            var body = new FormData();
+            body.append('text', text);
+            var response = await fetch('/api/voice/synthesize', { method: 'POST', body: body });
+            if (!response.ok) return;
+            var player = new Audio(URL.createObjectURL(await response.blob()));
+            player.play().catch(function() {});
+        } catch (err) {
+            console.warn('Voice synthesis unavailable:', err);
+        }
+    }
+
+    /* Voice input/output through Sarvam AI. */
+    var recorder;
+    var chunks = [];
+    var recordingStartedAt = 0;
+    if (voiceBtn) voiceBtn.addEventListener('click', async function() {
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+            appendMessage('bot', 'Voice input is not supported in this browser.');
+            return;
+        }
+        if (recorder && recorder.state === 'recording') {
+            recorder.stop();
+            return;
+        }
+        try {
+            var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recorder = new MediaRecorder(stream);
+            chunks = [];
+            recordingStartedAt = Date.now();
+            recorder.ondataavailable = function(e) { if (e.data.size) chunks.push(e.data); };
+            recorder.onstop = async function() {
+                stream.getTracks().forEach(function(track) { track.stop(); });
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '●';
+                voiceBtn.disabled = true;
+                try {
+                    var blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+                    if (Date.now() - recordingStartedAt < 700 || blob.size < 1000) {
+                        throw new Error('Recording was too short. Hold the microphone button while speaking.');
+                    }
+                    var body = new FormData();
+                    body.append('audio', blob, 'recording.webm');
+                    var result = await fetch('/api/voice/transcribe', { method: 'POST', body: body });
+                    var data = await result.json();
+                    if (!result.ok) throw new Error(data.detail || 'Transcription failed');
+                    inp.value = data.transcript || '';
+                    if (inp.value) {
+                        voiceRequested = true;
+                        form.requestSubmit();
+                    }
+                } catch (err) {
+                    appendMessage('bot', err.message || 'Voice transcription failed.');
+                } finally {
+                    voiceBtn.disabled = false;
+                }
+            };
+            recorder.start(250);
+            voiceBtn.classList.add('recording');
+            voiceBtn.textContent = '■';
+        } catch (err) {
+            appendMessage('bot', 'Microphone access is required for voice input.');
         }
     });
 

@@ -3,5 +3,6 @@
 from app.api.chat import chat_router
 from app.api.market import market_router
 from app.api.rag import rag_router
+from app.api.voice import voice_router
 
-__all__ = ["chat_router", "market_router", "rag_router"]
+__all__ = ["chat_router", "market_router", "rag_router", "voice_router"]
