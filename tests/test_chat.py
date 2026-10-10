@@ -10,6 +10,16 @@ def test_home_page(client):
     assert "TradeMind" in response.text
 
 
+def test_chat_page_exposes_voice_language_choices(client):
+    """Test voice language choices are available in the chat UI."""
+    response = client.get("/chat")
+    assert response.status_code == 200
+    assert 'id="voice-language"' in response.text
+    assert 'value="unknown">Auto / English' in response.text
+    assert 'value="hi-IN">Hindi' in response.text
+    assert 'value="te-IN">Telugu' in response.text
+
+
 def test_market_endpoint(client):
     """Test market data endpoint."""
     response = client.get("/api/market")
