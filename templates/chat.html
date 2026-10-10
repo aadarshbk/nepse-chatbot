@@ -217,6 +217,8 @@ body{font-family:var(--fb);background:var(--ink);color:var(--t1);overflow:hidden
         .vbtn{width:44px;height:44px;flex-shrink:0;border-radius:12px;border:1px solid var(--b1);background:var(--s1);color:var(--t2);cursor:pointer;display:grid;place-items:center;font-size:1.1rem;transition:all .15s;}
         .vbtn:hover,.vbtn.recording{border-color:var(--rd);color:var(--rd);background:rgba(255,77,106,.1);}
         .vbtn:disabled{opacity:.45;cursor:not-allowed;}
+        .voice-language{width:96px;height:44px;flex-shrink:0;border:1px solid var(--b1);border-radius:8px;background:var(--s1);color:var(--t1);padding:0 .5rem;font:inherit;font-size:.75rem;}
+        .voice-language:focus{outline:2px solid var(--ac);outline-offset:2px;}
 
         /* ── Right sidebar ── */
         .scard{padding:.65rem .8rem;border-radius:10px;border:1px solid var(--b1);background:var(--ink3);margin-bottom:.4rem;cursor:pointer;transition:all .18s;}
@@ -425,6 +427,20 @@ body{font-family:var(--fb);background:var(--ink);color:var(--t1);overflow:hidden
                 <input type="text" name="message" id="mi"
                     placeholder="Ask about NEPSE, RSI, tax rules, dividends…"
                     required autocomplete="off" maxlength="500" aria-label="Type your message">
+                <select class="voice-language" id="voice-language" aria-label="Voice language" title="Voice language">
+                    <option value="unknown">Auto / English</option>
+                    <option value="en-IN">English</option>
+                    <option value="hi-IN">Hindi</option>
+                    <option value="bn-IN">Bengali</option>
+                    <option value="gu-IN">Gujarati</option>
+                    <option value="kn-IN">Kannada</option>
+                    <option value="ml-IN">Malayalam</option>
+                    <option value="mr-IN">Marathi</option>
+                    <option value="od-IN">Odia</option>
+                    <option value="pa-IN">Punjabi</option>
+                    <option value="ta-IN">Tamil</option>
+                    <option value="te-IN">Telugu</option>
+                </select>
                 <button type="button" class="vbtn" id="voice-btn" aria-label="Start voice input" title="Start voice input">●</button>
                 <button type="submit" class="sbtn" id="sb" aria-label="Send">→</button>
             </form>
@@ -522,6 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var btn     = document.getElementById('sb');
     var msgs    = document.getElementById('msgs');
     var voiceBtn = document.getElementById('voice-btn');
+    var voiceLanguage = document.getElementById('voice-language');
     var voiceRequested = false;
     var sending = document.getElementById('sending');
     var emp     = document.getElementById('emp');
@@ -614,6 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             var body = new FormData();
             body.append('text', text);
+            body.append('target_language_code', voiceLanguage.value === 'unknown' ? 'en-IN' : voiceLanguage.value);
             var response = await fetch('/api/voice/synthesize', { method: 'POST', body: body });
             if (!response.ok) return;
             var player = new Audio(URL.createObjectURL(await response.blob()));
@@ -654,6 +672,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     var body = new FormData();
                     body.append('audio', blob, 'recording.webm');
+                    body.append('language_code', voiceLanguage.value);
                     var result = await fetch('/api/voice/transcribe', { method: 'POST', body: body });
                     var data = await result.json();
                     if (!result.ok) throw new Error(data.detail || 'Transcription failed');
